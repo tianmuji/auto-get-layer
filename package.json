@@ -12,15 +12,7 @@
     "watch": "npm run build -- --watch",
     "start": "npm run dev",
     "clean": "rm -rf *.js *.js.map",
-    "prestart": "npm run clean",
-    "prebuild": "npm run clean",
-    "test:auto-layout": "tsx test/auto-layout-tester.ts",
-    "test:build": "tsc -p tsconfig.test.json",
-    "test:setup": "echo '请设置 FIGMA_TOKEN 环境变量，然后运行: npm run test:auto-layout <figma_url>'",
-    "demo:test": "tsx test/demo-test.ts",
-    "test:frame-selection": "tsx test/frame-selection-flatten-test.ts",
-    "demo:frame-selection": "node test/demo-frame-selection-test.js",
-    "test:real-group": "tsx test/real-figma-group-test.ts"
+    "prestart": "npm run clean"
   },
   "author": "",
   "license": "",
