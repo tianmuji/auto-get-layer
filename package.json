@@ -1,0 +1,59 @@
+{
+  "name": "auto-get-layer",
+  "version": "1.0.0",
+  "description": "Your Figma Plugin",
+  "main": "code.js",
+  "scripts": {
+    "dev": "tsc -p tsconfig.json --watch",
+    "build": "tsc -p tsconfig.json",
+    "build:prod": "tsc -p tsconfig.json --declaration",
+    "lint": "eslint --ext .ts,.tsx --ignore-pattern node_modules .",
+    "lint:fix": "eslint --ext .ts,.tsx --ignore-pattern node_modules --fix .",
+    "watch": "npm run build -- --watch",
+    "start": "npm run dev",
+    "clean": "rm -rf *.js *.js.map",
+    "prestart": "npm run clean",
+    "prebuild": "npm run clean",
+    "test:auto-layout": "tsx test/auto-layout-tester.ts",
+    "test:build": "tsc -p tsconfig.test.json",
+    "test:setup": "echo '请设置 FIGMA_TOKEN 环境变量，然后运行: npm run test:auto-layout <figma_url>'",
+    "demo:test": "tsx test/demo-test.ts",
+    "test:frame-selection": "tsx test/frame-selection-flatten-test.ts",
+    "demo:frame-selection": "node test/demo-frame-selection-test.js",
+    "test:real-group": "tsx test/real-figma-group-test.ts"
+  },
+  "author": "",
+  "license": "",
+  "devDependencies": {
+    "@figma/eslint-plugin-figma-plugins": "*",
+    "@figma/plugin-typings": "^1.113.0",
+    "@types/node": "^20.19.4",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.3.2"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@figma/figma-plugins/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "project": "./tsconfig.json"
+    },
+    "root": true,
+    "rules": {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_",
+          "caughtErrorsIgnorePattern": "^_"
+        }
+      ]
+    }
+  }
+}

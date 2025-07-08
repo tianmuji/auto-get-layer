@@ -1,0 +1,107 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Figma 插件项目结构指南
+
+## 项目概述
+这是一个名为 "auto-get-layer" 的 Figma 插件，主要功能包括节点信息提取、UI规范检查和图片下载。
+
+## 核心文件结构
+
+### 主要入口文件
+- **[code.ts](mdc:code.ts)** - 插件主逻辑，包含所有核心功能实现
+- **[ui.html](mdc:ui.html)** - 插件用户界面，处理用户交互和结果展示
+- **[manifest.json](mdc:manifest.json)** - Figma 插件配置文件
+
+### 配置文件
+- **[package.json](mdc:package.json)** - 项目依赖和脚本配置
+- **[tsconfig.json](mdc:tsconfig.json)** - TypeScript 编译配置
+
+## 核心功能模块
+
+### 1. 节点信息提取
+位于 [code.ts](mdc:code.ts) 中，主要函数：
+- `getNodeInfo()` - 提取单个节点的完整信息
+- `getChildrenInfo()` - 递归提取子节点信息
+- 支持所有 Figma 节点类型的属性提取
+
+### 2. UI规范检查系统
+智能检查设计规范，包含以下检查规则：
+
+#### 激活的检查规则：
+- **智能自动布局检查** - 检测复杂容器是否启用自动布局
+- **全面自动布局检查** - 校验所有支持自动布局的节点（独立功能）
+- **分层规范检查** - 识别 Group 误用，建议使用 Frame
+- **命名规范检查** - 检查重要容器的语义化命名
+- **根Frame分组检查** - 检查分组合理性
+- **子节点数量检查** - 检查节点是否过多（>20个）
+- **层级深度检查** - 检查嵌套是否过深（>5层）
+- **素材型节点命名检查** - 检查矢量素材分组命名
+
+#### 已禁用的检查（避免误报）：
+- 颜色变量检测
+- 文本样式检测
+- 间距规范检测
+
+### 3. 图片下载功能
+- 支持 PNG 格式导出（2x 缩放）
+- 批量下载选中节点的图片
+
+### 4. 错误报告系统
+- 生成格式化的 Markdown 错误报告
+- 支持"复制所有错误"功能
+- 包含检查时间、问题统计、详细错误和建议
+
+## 开发规范
+
+### TypeScript 约定
+- 使用严格的类型检查
+- 所有 Figma 节点类型使用官方常量定义
+- 区分具备 children 属性的节点类型
+
+### 节点类型常量
+```typescript
+// 具备 children 的节点类型
+const NODE_TYPES_WITH_CHILDREN = [
+  "DOCUMENT", "PAGE", "FRAME", "GROUP", "COMPONENT", "COMPONENT_SET", "INSTANCE", "SECTION"
+];
+
+// 所有节点类型
+const ALL_NODE_TYPES = [
+  "DOCUMENT", "PAGE", "FRAME", "GROUP", "COMPONENT", "COMPONENT_SET", "INSTANCE",
+  "RECTANGLE", "LINE", "ELLIPSE", "POLYGON", "STAR", "VECTOR", "TEXT",
+  "SLICE", "BOOLEAN_OPERATION", "SECTION", "STICKY", "SHAPE_WITH_TEXT",
+  "CONNECTOR", "CODE_BLOCK", "STAMP", "WIDGET", "EMBED", "LINK_UNFURL",
+  "MEDIA", "FIGMA_SQUIGGLE", "FIGMA_ARROW", "FIGMA_HIGHLIGHT", "WASHI_TAPE",
+  "TABLE", "TABLE_CELL"
+];
+```
+
+### 递归分析模式
+检查功能使用递归分析，传递关键参数：
+- `depth` - 当前递归深度
+- `rootAncestor` - 根祖先节点（用于素材命名检查）
+
+### UI交互模式
+- 支持节点定位跳转：`figma.currentPage.selection = [node]; figma.viewport.scrollAndZoomIntoView([node]);`
+- 使用 `figma.ui.postMessage()` 进行主线程与UI线程通信
+
+## 错误处理
+- 所有检查函数都有完善的错误处理
+- 使用 try-catch 包装可能失败的操作
+- 在UI中显示友好的错误信息
+
+## 性能优化
+- 避免重复的节点遍历
+- 智能检查条件，减少不必要的规则检查
+- 使用阈值控制检查精度，减少误报
+
+## 扩展指南
+添加新的UI规范检查时：
+1. 在 `checkUIRules()` 函数中添加新的检查逻辑
+2. 确保检查条件足够智能，避免误报
+3. 提供清晰的错误信息和修正建议
+4. 考虑性能影响，避免过度检查
+ 
