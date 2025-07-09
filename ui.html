@@ -1,16 +1,425 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto Get Layer</title>
+  <title>纯数学几何分组</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      padding: 16px;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .card-content {
+      padding: 20px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #374151;
+    }
+
+    .button {
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+
+    .button-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .button-primary:hover {
+      background: #2563eb;
+    }
+
+    .button-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+
+    .button-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .status-success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .status-error {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .status-info {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .result-panel {
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+
+    .result-header {
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .result-content {
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .group-item {
+      background: #f7fafc;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-left: 3px solid #3b82f6;
+    }
+
+    .group-title {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .group-children {
+      margin-left: 16px;
+    }
+
+    .child-item {
+      background: white;
+      padding: 6px 10px;
+      margin: 4px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #3b82f6;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .conflict-item {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin: 4px 0;
+      color: #dc2626;
+      font-size: 13px;
+    }
+  </style>
 </head>
 
 <body>
   <div class="container">
+    <!-- 主卡片 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🧮 纯数学几何分组</div>
+        <div class="card-subtitle">基于包含关系和重叠检测的智能分组</div>
+      </div>
+
+      <div class="card-content">
+        <!-- 状态显示 -->
+        <div id="status" class="status status-info">
+          📋 选择Frame节点，然后点击"应用分组"开始分析
+        </div>
+
+        <!-- 分组结果面板 -->
+        <div id="result-panel" class="result-panel hidden">
+          <div class="result-header">
+            📊 分组结果详情
+          </div>
+          <div class="result-content">
+            <div id="result-stats" class="stats-grid"></div>
+            <div id="result-groups"></div>
+            <div id="result-conflicts"></div>
+          </div>
+        </div>
+
+        <!-- 主要功能 -->
+        <div class="section">
+          <div class="section-title">🎯 分组功能</div>
+          <button id="apply-grouping" class="button button-primary">
+            🔍 应用几何分组
+          </button>
+        </div>
+
+        <!-- 测试用例 -->
+        <div class="section">
+          <div class="section-title">🧪 测试用例</div>
+          <div class="test-grid">
+            <button class="button button-secondary test-case" data-type="card-layout">
+              📱 卡片布局
+            </button>
+            <button class="button button-secondary test-case" data-type="nested-containers">
+              📦 嵌套容器
+            </button>
+            <button class="button button-secondary test-case" data-type="flex-horizontal">
+              ↔️ 水平布局
+            </button>
+            <button class="button button-secondary test-case" data-type="flex-vertical">
+              ↕️ 垂直布局
+            </button>
+            <button class="button button-secondary test-case" data-type="overlap-conflict">
+              ⚠️ 重叠冲突
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
   <script>
+    // 状态管理
+    const statusEl = document.getElementById('status');
+
+    function showStatus(message, type = 'info') {
+      statusEl.className = `status status-${type}`;
+      statusEl.textContent = message;
+    }
+
+    // 应用几何分组
+    document.getElementById('apply-grouping').onclick = function() {
+      showStatus('🔍 正在分析几何关系...', 'info');
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'apply-geometric-grouping'
+        }
+      }, '*');
+    };
+
+    // 测试用例创建
+    document.querySelectorAll('.test-case').forEach(button => {
+      button.onclick = function() {
+        const testType = this.dataset.type;
+        const testName = this.textContent.trim();
+
+        showStatus(`🧪 正在创建测试用例: ${testName}`, 'info');
+
+        parent.postMessage({
+          pluginMessage: {
+            type: 'create-test-case',
+            testType: testType
+          }
+        }, '*');
+      };
+    });
+
+    // 显示详细分组结果
+    function showDetailedResult(result) {
+      const resultPanel = document.getElementById('result-panel');
+      const statsContainer = document.getElementById('result-stats');
+      const groupsContainer = document.getElementById('result-groups');
+      const conflictsContainer = document.getElementById('result-conflicts');
+
+      // 显示结果面板
+      resultPanel.classList.remove('hidden');
+
+      // 渲染统计信息
+      statsContainer.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${result.groupCount || 0}</div>
+          <div class="stat-label">分组数量</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${result.totalElements || 0}</div>
+          <div class="stat-label">元素总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${result.conflictCount || 0}</div>
+          <div class="stat-label">冲突元素</div>
+        </div>
+      `;
+
+      // 渲染分组详情
+      if (result.groups && result.groups.length > 0) {
+        groupsContainer.innerHTML = result.groups.map((group, index) => {
+          const icon = group.layoutDirection === 'HORIZONTAL' ? '↔️' : '↕️';
+          const childrenHtml = group.children ? group.children.map(child =>
+            `<div class="child-item">└─ ${child}</div>`
+          ).join('') : '';
+
+          return `
+            <div class="group-item">
+              <div class="group-title">
+                ${icon} Group ${index + 1}: ${group.name}
+                <span style="color: #6b7280; font-size: 12px;">(${group.layoutDirection})</span>
+              </div>
+              <div class="group-children">
+                ${childrenHtml}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        groupsContainer.innerHTML = '<div style="color: #6b7280; font-style: italic; text-align: center; padding: 20px;">没有发现分组</div>';
+      }
+
+      // 渲染冲突元素
+      if (result.conflicts && result.conflicts.length > 0) {
+        conflictsContainer.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 8px; color: #dc2626;">⚠️ 冲突元素</div>
+          ${result.conflicts.map(conflict =>
+            `<div class="conflict-item">${conflict} (部分重叠)</div>`
+          ).join('')}
+        `;
+      } else {
+        conflictsContainer.innerHTML = '';
+      }
+    }
+
+    // 监听插件消息
+    window.onmessage = (event) => {
+      const { type, result } = event.data.pluginMessage || {};
+
+      if (type === 'grouping-result') {
+        if (result.success) {
+          showStatus(`✅ ${result.message} (创建了 ${result.groupCount || 0} 个分组)`, 'success');
+
+          // 显示详细结果
+          if (result.detailedResult) {
+            showDetailedResult(result.detailedResult);
+          }
+
+          if (result.details && result.details.length > 0) {
+            console.log('分组详情:', result.details);
+          }
+        } else {
+          showStatus(`❌ ${result.message}`, 'error');
+          document.getElementById('result-panel').classList.add('hidden');
+          if (result.error) {
+            console.error('分组错误:', result.error);
+          }
+        }
+      }
+
+      if (type === 'test-case-created') {
+        if (result.success) {
+          showStatus(`✅ ${result.message}`, 'success');
+        } else {
+          showStatus(`❌ ${result.message}`, 'error');
+          if (result.error) {
+            console.error('测试用例创建错误:', result.error);
+          }
+        }
+      }
+    };
+
+    console.log('🚀 纯数学几何分组UI已加载');
   </script>
 </body>
 

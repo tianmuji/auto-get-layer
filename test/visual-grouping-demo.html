@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 纯数学几何分组算法可视化演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .test-case {
+            margin-bottom: 50px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .test-header {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .test-title {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .test-description {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .test-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .canvas-container {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .element {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .element:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .element-container { background-color: #4299e1; border-color: #3182ce; }
+        .element-image { background-color: #48bb78; border-color: #38a169; }
+        .element-text { background-color: #ed8936; border-color: #dd6b20; }
+        .element-button { background-color: #9f7aea; border-color: #805ad5; }
+        .element-conflict { background-color: #f56565; border-color: #e53e3e; }
+        .element-normal { background-color: #38b2ac; border-color: #319795; }
+
+        .data-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #4a5568;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .data-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.85em;
+        }
+
+        .data-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .group-result {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #4299e1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .group-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1em;
+        }
+
+        .group-children {
+            margin-left: 0px;
+            color: #718096;
+        }
+
+        .group-children div {
+            margin: 6px 4px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 6px;
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 0.9em;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .group-children div:hover {
+            background: #e2e8f0;
+            transform: translateY(-1px);
+        }
+
+        .group-boundary {
+            position: absolute;
+            border: 3px dashed #4299e1;
+            background: rgba(66, 153, 225, 0.1);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .group-label {
+            position: absolute;
+            top: -12px;
+            left: 8px;
+            background: #4299e1;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #4299e1;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .conflict-item {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 5px 0;
+            color: #c53030;
+            font-weight: 500;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        .comparison-highlight {
+            background: linear-gradient(45deg, #fef5e7 25%, transparent 25%),
+                        linear-gradient(-45deg, #fef5e7 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #fef5e7 75%),
+                        linear-gradient(-45deg, transparent 75%, #fef5e7 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        .analysis-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .analysis-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .analysis-item {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #4299e1;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .test-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .test-content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 纯数学几何分组算法</h1>
+            <p>可视化演示 - 基于包含关系和重叠检测的智能分组</p>
+        </div>
+
+        <div class="content">
+            <!-- 测试用例1: 卡片布局 -->
+            <div class="test-case">
+                <div class="test-header">
+                    <div class="test-title">📱 测试用例1: 卡片布局</div>
+                    <div class="test-description">典型的产品卡片结构，验证包含关系识别和垂直布局检测</div>
+                </div>
+                <div class="test-content">
+                    <div class="section">
+                        <div class="section-title">📥 输入数据 (未分组)</div>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>元素名称</th>
+                                        <th>位置</th>
+                                        <th>尺寸</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="card-input-data">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="canvas-container" id="card-input-canvas" style="height: 300px;">
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">🎯 分组可视化</div>
+                        <div class="canvas-container" id="card-grouped-canvas" style="height: 300px;">
+                        </div>
+                        <div class="analysis-panel">
+                            <div class="analysis-title">🔍 分组分析</div>
+                            <div id="card-analysis-result"></div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">📊 分组结果</div>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="card-groups-count">1</div>
+                                <div class="stat-label">分组数量</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="card-elements-count">6</div>
+                                <div class="stat-label">元素总数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="card-conflicts-count">0</div>
+                                <div class="stat-label">冲突元素</div>
+                            </div>
+                        </div>
+                        <div id="card-groups-result">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 测试用例2: 重叠冲突 -->
+            <div class="test-case">
+                <div class="test-header">
+                    <div class="test-title">⚠️ 测试用例2: 重叠冲突</div>
+                    <div class="test-description">包含正常包含关系和部分重叠冲突，验证冲突检测和处理</div>
+                </div>
+                <div class="test-content">
+                    <div class="section">
+                        <div class="section-title">📥 输入数据 (未分组)</div>
+                        <div class="data-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>元素名称</th>
+                                        <th>位置</th>
+                                        <th>尺寸</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="conflict-input-data">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="canvas-container" id="conflict-input-canvas" style="height: 300px;">
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">🎯 分组可视化</div>
+                        <div class="canvas-container" id="conflict-grouped-canvas" style="height: 300px;">
+                        </div>
+                        <div class="analysis-panel">
+                            <div class="analysis-title">🔍 冲突分析</div>
+                            <div id="conflict-analysis-result"></div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">📊 分组结果</div>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="conflict-groups-count">1</div>
+                                <div class="stat-label">分组数量</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="conflict-elements-count">5</div>
+                                <div class="stat-label">元素总数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="conflict-conflicts-count">2</div>
+                                <div class="stat-label">冲突元素</div>
+                            </div>
+                        </div>
+                        <div id="conflict-groups-result">
+                        </div>
+                        <div id="conflict-conflicts-result">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图例 -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color element-container"></div>
+                    <span>容器元素</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color element-image"></div>
+                    <span>图片元素</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color element-text"></div>
+                    <span>文本元素</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color element-button"></div>
+                    <span>按钮元素</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color element-normal"></div>
+                    <span>普通元素</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color element-conflict"></div>
+                    <span>冲突元素</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试数据
+        const cardLayoutData = [
+            { id: 'price', name: 'Price', x: 40, y: 380, width: 100, height: 30, type: 'text' },
+            { id: 'image', name: 'Product Image', x: 40, y: 40, width: 320, height: 200, type: 'image' },
+            { id: 'button', name: 'Buy Button', x: 260, y: 380, width: 100, height: 40, type: 'button' },
+            { id: 'title', name: 'Product Title', x: 40, y: 260, width: 320, height: 30, type: 'text' },
+            { id: 'desc', name: 'Product Description', x: 40, y: 300, width: 320, height: 60, type: 'text' },
+            { id: 'container', name: 'Card Container', x: 20, y: 20, width: 360, height: 460, type: 'container' },
+        ];
+
+        const overlapConflictData = [
+            { id: 'base', name: 'Base Container', x: 20, y: 20, width: 300, height: 300, type: 'container' },
+            { id: 'normal', name: 'Normal Element', x: 40, y: 40, width: 120, height: 80, type: 'normal' },
+            { id: 'independent', name: 'Independent Element', x: 40, y: 200, width: 120, height: 80, type: 'normal' },
+            { id: 'overlap1', name: 'Overlap Element 1', x: 350, y: 150, width: 80, height: 80, type: 'conflict' },
+            { id: 'overlap2', name: 'Overlap Element 2', x: 380, y: 180, width: 80, height: 80, type: 'conflict' },
+        ];
+
+        // 几何分组算法
+        function isElementContained(containerBounds, elementBounds) {
+            return containerBounds.minX <= elementBounds.minX &&
+                   containerBounds.minY <= elementBounds.minY &&
+                   containerBounds.maxX >= elementBounds.maxX &&
+                   containerBounds.maxY >= elementBounds.maxY;
+        }
+
+        function hasPartialOverlap(bounds1, bounds2) {
+            const hasOverlap = !(bounds1.maxX <= bounds2.minX ||
+                                bounds2.maxX <= bounds1.minX ||
+                                bounds1.maxY <= bounds2.minY ||
+                                bounds2.maxY <= bounds1.minY);
+            const isContained1 = isElementContained(bounds1, bounds2);
+            const isContained2 = isElementContained(bounds2, bounds1);
+
+            return hasOverlap && !isContained1 && !isContained2;
+        }
+
+        function detectLayoutDirection(elements) {
+            if (elements.length < 2) return 'VERTICAL';
+
+            let horizontalGaps = 0;
+            let verticalGaps = 0;
+
+            for (let i = 0; i < elements.length - 1; i++) {
+                for (let j = i + 1; j < elements.length; j++) {
+                    const elem1 = elements[i];
+                    const elem2 = elements[j];
+
+                    const horizontalGap = Math.max(0, Math.max(elem1.bounds.minX - elem2.bounds.maxX, elem2.bounds.minX - elem1.bounds.maxX));
+                    const verticalOverlap = Math.min(elem1.bounds.maxY, elem2.bounds.maxY) - Math.max(elem1.bounds.minY, elem2.bounds.minY);
+
+                    if (horizontalGap < 100 && verticalOverlap > 0) {
+                        horizontalGaps++;
+                    }
+
+                    const verticalGap = Math.max(0, Math.max(elem1.bounds.minY - elem2.bounds.maxY, elem2.bounds.minY - elem1.bounds.maxY));
+                    const horizontalOverlap = Math.min(elem1.bounds.maxX, elem2.bounds.maxX) - Math.max(elem1.bounds.minX, elem2.bounds.minX);
+
+                    if (verticalGap < 100 && horizontalOverlap > 0) {
+                        verticalGaps++;
+                    }
+                }
+            }
+
+            return horizontalGaps > verticalGaps ? 'HORIZONTAL' : 'VERTICAL';
+        }
+
+        function performGeometricGrouping(elements) {
+            const elementsWithBounds = elements.map(elem => ({
+                ...elem,
+                bounds: {
+                    minX: elem.x,
+                    minY: elem.y,
+                    maxX: elem.x + elem.width,
+                    maxY: elem.y + elem.height
+                }
+            }));
+
+            // 识别包含关系
+            const parentChildRelations = [];
+            for (let i = 0; i < elementsWithBounds.length; i++) {
+                for (let j = 0; j < elementsWithBounds.length; j++) {
+                    if (i === j) continue;
+
+                    const elem1 = elementsWithBounds[i];
+                    const elem2 = elementsWithBounds[j];
+
+                    if (isElementContained(elem1.bounds, elem2.bounds)) {
+                        parentChildRelations.push({ parent: elem1, child: elem2 });
+                    }
+                }
+            }
+
+            // 识别冲突元素
+            const conflictElements = new Set();
+            for (let i = 0; i < elementsWithBounds.length; i++) {
+                for (let j = i + 1; j < elementsWithBounds.length; j++) {
+                    const elem1 = elementsWithBounds[i];
+                    const elem2 = elementsWithBounds[j];
+
+                    if (hasPartialOverlap(elem1.bounds, elem2.bounds)) {
+                        const hasContainmentRelation = parentChildRelations.some(relation =>
+                            (relation.parent.id === elem1.id && relation.child.id === elem2.id) ||
+                            (relation.parent.id === elem2.id && relation.child.id === elem1.id)
+                        );
+
+                        if (!hasContainmentRelation) {
+                            conflictElements.add(elem1.id);
+                            conflictElements.add(elem2.id);
+                        }
+                    }
+                }
+            }
+
+            // 构建分组
+            const validRelations = parentChildRelations.filter(relation =>
+                !conflictElements.has(relation.parent.id) && !conflictElements.has(relation.child.id)
+            );
+
+            const childrenMap = new Map();
+            for (const relation of validRelations) {
+                if (!childrenMap.has(relation.parent.id)) {
+                    childrenMap.set(relation.parent.id, []);
+                }
+                childrenMap.get(relation.parent.id).push(relation.child);
+            }
+
+            const groups = [];
+            const rootElements = elementsWithBounds.filter(elem =>
+                !validRelations.some(r => r.child.id === elem.id) && !conflictElements.has(elem.id)
+            );
+
+            for (const rootElement of rootElements) {
+                const children = childrenMap.get(rootElement.id) || [];
+                if (children.length > 0) {
+                    groups.push({
+                        element: rootElement,
+                        directChildren: children,
+                        layoutDirection: detectLayoutDirection(children)
+                    });
+                }
+            }
+
+            return {
+                groups,
+                conflicts: elementsWithBounds.filter(e => conflictElements.has(e.id)),
+                relations: validRelations
+            };
+        }
+
+        // 可视化函数
+        function renderDataTable(elements, tableId) {
+            const tbody = document.getElementById(tableId);
+            tbody.innerHTML = '';
+
+            elements.forEach(element => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${element.name}</td>
+                    <td>(${element.x}, ${element.y})</td>
+                    <td>${element.width} × ${element.height}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderCanvas(elements, canvasId, scale = 0.8) {
+            const canvas = document.getElementById(canvasId);
+            canvas.innerHTML = '';
+
+            // 计算画布尺寸
+            const maxX = Math.max(...elements.map(e => e.x + e.width));
+            const maxY = Math.max(...elements.map(e => e.y + e.height));
+
+            elements.forEach(element => {
+                const div = document.createElement('div');
+                div.className = `element element-${element.type}`;
+                div.style.left = (element.x * scale) + 'px';
+                div.style.top = (element.y * scale) + 'px';
+                div.style.width = (element.width * scale) + 'px';
+                div.style.height = (element.height * scale) + 'px';
+                div.textContent = element.name.length > 12 ? element.name.substring(0, 12) + '...' : element.name;
+                div.title = `${element.name}\n位置: (${element.x}, ${element.y})\n尺寸: ${element.width} × ${element.height}`;
+
+                canvas.appendChild(div);
+            });
+        }
+
+        function renderGroupedCanvas(elements, result, canvasId, scale = 0.8) {
+            const canvas = document.getElementById(canvasId);
+            canvas.innerHTML = '';
+
+            // 渲染所有元素
+            elements.forEach(element => {
+                const div = document.createElement('div');
+                div.className = `element element-${element.type}`;
+                div.style.left = (element.x * scale) + 'px';
+                div.style.top = (element.y * scale) + 'px';
+                div.style.width = (element.width * scale) + 'px';
+                div.style.height = (element.height * scale) + 'px';
+                div.textContent = element.name.length > 12 ? element.name.substring(0, 12) + '...' : element.name;
+                div.title = `${element.name}\n位置: (${element.x}, ${element.y})\n尺寸: ${element.width} × ${element.height}`;
+
+                canvas.appendChild(div);
+            });
+
+            // 渲染分组边界
+            result.groups.forEach((group, index) => {
+                const allGroupElements = [group.element, ...group.directChildren];
+                const minX = Math.min(...allGroupElements.map(e => e.x));
+                const minY = Math.min(...allGroupElements.map(e => e.y));
+                const maxX = Math.max(...allGroupElements.map(e => e.x + e.width));
+                const maxY = Math.max(...allGroupElements.map(e => e.y + e.height));
+
+                const boundary = document.createElement('div');
+                boundary.className = 'group-boundary';
+                boundary.style.left = (minX * scale - 5) + 'px';
+                boundary.style.top = (minY * scale - 5) + 'px';
+                boundary.style.width = ((maxX - minX) * scale + 10) + 'px';
+                boundary.style.height = ((maxY - minY) * scale + 10) + 'px';
+
+                const label = document.createElement('div');
+                label.className = 'group-label';
+                label.textContent = `Group ${index + 1}`;
+                boundary.appendChild(label);
+
+                canvas.appendChild(boundary);
+            });
+        }
+
+        function renderGroupResult(result, groupsId, conflictsId = null) {
+            const groupsContainer = document.getElementById(groupsId);
+            groupsContainer.innerHTML = '';
+
+            if (result.groups.length === 0) {
+                groupsContainer.innerHTML = '<div style="color: #718096; font-style: italic;">没有发现分组</div>';
+            } else {
+                result.groups.forEach((group, index) => {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'group-result';
+
+                    const icon = group.layoutDirection === 'HORIZONTAL' ? '↔️' : '↕️';
+                    const groupTitle = document.createElement('div');
+                    groupTitle.className = 'group-title';
+                    groupTitle.innerHTML = `${icon} Group ${index + 1}: ${group.element.name} <span style="color: #718096;">(${group.layoutDirection})</span>`;
+
+                    const groupChildren = document.createElement('div');
+                    groupChildren.className = 'group-children';
+
+                    // 添加父元素信息
+                    const parentDiv = document.createElement('div');
+                    parentDiv.textContent = `📦 ${group.element.name} (容器)`;
+                    parentDiv.style.background = '#e6f3ff';
+                    parentDiv.style.borderLeft = '3px solid #4299e1';
+                    groupChildren.appendChild(parentDiv);
+
+                    // 添加子元素信息
+                    group.directChildren.forEach(child => {
+                        const childDiv = document.createElement('div');
+                        childDiv.textContent = `└─ ${child.name}`;
+                        childDiv.style.marginLeft = '20px';
+                        groupChildren.appendChild(childDiv);
+                    });
+
+                    groupDiv.appendChild(groupTitle);
+                    groupDiv.appendChild(groupChildren);
+                    groupsContainer.appendChild(groupDiv);
+                });
+            }
+
+            // 渲染冲突元素
+            if (conflictsId && result.conflicts.length > 0) {
+                const conflictsContainer = document.getElementById(conflictsId);
+                conflictsContainer.innerHTML = '<div class="section-title" style="margin-bottom: 10px;">⚠️ 冲突元素</div>';
+
+                result.conflicts.forEach(conflict => {
+                    const conflictDiv = document.createElement('div');
+                    conflictDiv.className = 'conflict-item';
+                    conflictDiv.textContent = `${conflict.name} (部分重叠)`;
+                    conflictsContainer.appendChild(conflictDiv);
+                });
+            }
+        }
+
+        function renderAnalysis(result, elements, analysisId) {
+            const analysisContainer = document.getElementById(analysisId);
+            analysisContainer.innerHTML = '';
+
+            // 分组分析
+            if (result.groups.length > 0) {
+                result.groups.forEach((group, index) => {
+                    const analysisItem = document.createElement('div');
+                    analysisItem.className = 'analysis-item';
+
+                    const containmentInfo = group.directChildren.map(child => {
+                        const parentBounds = group.element.bounds;
+                        const childBounds = child.bounds;
+                        const margin = {
+                            left: childBounds.minX - parentBounds.minX,
+                            top: childBounds.minY - parentBounds.minY,
+                            right: parentBounds.maxX - childBounds.maxX,
+                            bottom: parentBounds.maxY - childBounds.maxY
+                        };
+                        return `${child.name}: 边距(${margin.left}, ${margin.top}, ${margin.right}, ${margin.bottom})`;
+                    }).join('<br>');
+
+                    analysisItem.innerHTML = `
+                        <strong>Group ${index + 1} 分析:</strong><br>
+                        • 容器: ${group.element.name}<br>
+                        • 子元素数量: ${group.directChildren.length}<br>
+                        • 布局方向: ${group.layoutDirection}<br>
+                        • 包含关系:<br>${containmentInfo}
+                    `;
+                    analysisContainer.appendChild(analysisItem);
+                });
+            }
+
+            // 冲突分析
+            if (result.conflicts.length > 0) {
+                const conflictAnalysis = document.createElement('div');
+                conflictAnalysis.className = 'analysis-item';
+                conflictAnalysis.style.borderLeftColor = '#f56565';
+
+                const conflictPairs = [];
+                for (let i = 0; i < result.conflicts.length; i++) {
+                    for (let j = i + 1; j < result.conflicts.length; j++) {
+                        const elem1 = result.conflicts[i];
+                        const elem2 = result.conflicts[j];
+                        if (hasPartialOverlap(elem1.bounds, elem2.bounds)) {
+                            conflictPairs.push(`${elem1.name} ↔ ${elem2.name}`);
+                        }
+                    }
+                }
+
+                conflictAnalysis.innerHTML = `
+                    <strong>⚠️ 冲突分析:</strong><br>
+                    • 冲突元素数量: ${result.conflicts.length}<br>
+                    • 冲突对: ${conflictPairs.join(', ')}<br>
+                    • 原因: 元素间存在部分重叠，无法建立清晰的父子关系
+                `;
+                analysisContainer.appendChild(conflictAnalysis);
+            }
+
+            // 整体统计
+            const overallAnalysis = document.createElement('div');
+            overallAnalysis.className = 'analysis-item';
+            overallAnalysis.style.borderLeftColor = '#48bb78';
+
+            const totalGrouped = result.groups.reduce((sum, group) => sum + group.directChildren.length + 1, 0);
+            const groupingRate = ((totalGrouped / elements.length) * 100).toFixed(1);
+
+            overallAnalysis.innerHTML = `
+                <strong>📊 整体分析:</strong><br>
+                • 总元素数: ${elements.length}<br>
+                • 已分组元素: ${totalGrouped}<br>
+                • 分组率: ${groupingRate}%<br>
+                • 分组效果: ${groupingRate > 80 ? '优秀' : groupingRate > 60 ? '良好' : '需要优化'}
+            `;
+            analysisContainer.appendChild(overallAnalysis);
+        }
+
+        function updateStats(result, prefix) {
+            document.getElementById(`${prefix}-groups-count`).textContent = result.groups.length;
+            document.getElementById(`${prefix}-elements-count`).textContent =
+                result.groups.reduce((sum, group) => sum + group.directChildren.length + 1, 0) + result.conflicts.length;
+            document.getElementById(`${prefix}-conflicts-count`).textContent = result.conflicts.length;
+        }
+
+        // 初始化页面
+        function initializePage() {
+            // 卡片布局测试
+            renderDataTable(cardLayoutData, 'card-input-data');
+            renderCanvas(cardLayoutData, 'card-input-canvas');
+            const cardResult = performGeometricGrouping(cardLayoutData);
+            renderGroupedCanvas(cardLayoutData, cardResult, 'card-grouped-canvas');
+            renderGroupResult(cardResult, 'card-groups-result');
+            renderAnalysis(cardResult, cardLayoutData, 'card-analysis-result');
+            updateStats(cardResult, 'card');
+
+            // 重叠冲突测试
+            renderDataTable(overlapConflictData, 'conflict-input-data');
+            renderCanvas(overlapConflictData, 'conflict-input-canvas');
+            const conflictResult = performGeometricGrouping(overlapConflictData);
+            renderGroupedCanvas(overlapConflictData, conflictResult, 'conflict-grouped-canvas');
+            renderGroupResult(conflictResult, 'conflict-groups-result', 'conflict-conflicts-result');
+            renderAnalysis(conflictResult, overlapConflictData, 'conflict-analysis-result');
+            updateStats(conflictResult, 'conflict');
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>

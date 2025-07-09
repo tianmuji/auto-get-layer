@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 层次化最小范围分组算法</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .demo-panel {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .panel-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .canvas {
+            position: relative;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            height: 400px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .element {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .element:hover {
+            transform: scale(1.05);
+            z-index: 20;
+        }
+
+        .element-container { background-color: #4299e1; border-color: #3182ce; }
+        .element-text { background-color: #ed8936; border-color: #dd6b20; }
+        .element-button { background-color: #9f7aea; border-color: #805ad5; }
+        .element-image { background-color: #48bb78; border-color: #38a169; }
+        .element-normal { background-color: #38b2ac; border-color: #319795; }
+
+        .group-boundary {
+            position: absolute;
+            border: 3px solid;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .group-boundary.level-1 {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .group-boundary.level-2 {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .group-boundary.level-3 {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .group-boundary.level-4 {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .group-label {
+            position: absolute;
+            top: -15px;
+            left: 8px;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .group-label.level-1 { background: #ef4444; }
+        .group-label.level-2 { background: #f59e0b; }
+        .group-label.level-3 { background: #10b981; }
+        .group-label.level-4 { background: #3b82f6; }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 10px 0;
+        }
+
+        .control-label {
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .slider {
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .value-display {
+            min-width: 60px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .test-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #3b82f6;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .test-btn:hover {
+            background: #2563eb;
+        }
+
+        .test-btn.active {
+            background: #1d4ed8;
+        }
+
+        .results-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            margin-top: 20px;
+        }
+
+        .group-tree {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tree-node {
+            margin: 2px 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .tree-node:hover {
+            background: #f3f4f6;
+        }
+
+        .tree-node.level-1 {
+            background: #fef2f2;
+            border-left: 3px solid #ef4444;
+            font-weight: 600;
+        }
+
+        .tree-node.level-2 {
+            background: #fffbeb;
+            border-left: 3px solid #f59e0b;
+            font-weight: 600;
+        }
+
+        .tree-node.level-3 {
+            background: #ecfdf5;
+            border-left: 3px solid #10b981;
+        }
+
+        .tree-node.level-4 {
+            background: #eff6ff;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 层次化最小范围分组算法</h1>
+            <p>基于换行/换列检测的递归分组，支持大组内的小组嵌套</p>
+        </div>
+
+        <div class="content">
+            <!-- 控制面板 -->
+            <div class="controls">
+                <h3 style="margin-bottom: 15px;">🎛️ 分组参数控制</h3>
+                
+                <div class="control-group">
+                    <div class="control-label">换行阈值:</div>
+                    <input type="range" class="slider" id="row-threshold" min="5" max="50" value="20">
+                    <div class="value-display" id="row-threshold-value">20px</div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label">换列阈值:</div>
+                    <input type="range" class="slider" id="col-threshold" min="5" max="50" value="20">
+                    <div class="value-display" id="col-threshold-value">20px</div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label">最小分组大小:</div>
+                    <input type="range" class="slider" id="min-group-size" min="2" max="8" value="2">
+                    <div class="value-display" id="min-group-size-value">2个</div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label">最大分组深度:</div>
+                    <input type="range" class="slider" id="max-depth" min="2" max="6" value="4">
+                    <div class="value-display" id="max-depth-value">4层</div>
+                </div>
+
+                <div class="test-buttons">
+                    <button class="test-btn active" data-case="grid_layout">📊 网格布局</button>
+                    <button class="test-btn" data-case="card_list">📱 卡片列表</button>
+                    <button class="test-btn" data-case="form_layout">📝 表单布局</button>
+                    <button class="test-btn" data-case="dashboard">📈 仪表板</button>
+                    <button class="test-btn" data-case="complex_ui">🔥 复杂界面</button>
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-elements">0</div>
+                    <div class="stat-label">总元素数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-groups">0</div>
+                    <div class="stat-label">分组总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="max-group-depth">0</div>
+                    <div class="stat-label">最大深度</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="grouping-efficiency">0%</div>
+                    <div class="stat-label">分组效率</div>
+                </div>
+            </div>
+
+            <!-- 演示区域 -->
+            <div class="demo-grid">
+                <div class="demo-panel">
+                    <div class="panel-title">📥 原始元素布局</div>
+                    <div class="canvas" id="original-canvas"></div>
+                </div>
+                
+                <div class="demo-panel">
+                    <div class="panel-title">🎯 层次化分组结果</div>
+                    <div class="canvas" id="grouped-canvas"></div>
+                </div>
+            </div>
+
+            <!-- 结果展示 -->
+            <div class="results-panel">
+                <h3 style="margin-bottom: 20px;">🌳 分组层次结构</h3>
+                <div class="group-tree" id="group-tree"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试数据集
+        const testCases = {
+            grid_layout: [
+                // 3x3 网格布局
+                { id: 'item1', name: 'Item 1', x: 20, y: 20, width: 80, height: 60, type: 'normal' },
+                { id: 'item2', name: 'Item 2', x: 120, y: 20, width: 80, height: 60, type: 'normal' },
+                { id: 'item3', name: 'Item 3', x: 220, y: 20, width: 80, height: 60, type: 'normal' },
+                { id: 'item4', name: 'Item 4', x: 20, y: 100, width: 80, height: 60, type: 'normal' },
+                { id: 'item5', name: 'Item 5', x: 120, y: 100, width: 80, height: 60, type: 'normal' },
+                { id: 'item6', name: 'Item 6', x: 220, y: 100, width: 80, height: 60, type: 'normal' },
+                { id: 'item7', name: 'Item 7', x: 20, y: 180, width: 80, height: 60, type: 'normal' },
+                { id: 'item8', name: 'Item 8', x: 120, y: 180, width: 80, height: 60, type: 'normal' },
+                { id: 'item9', name: 'Item 9', x: 220, y: 180, width: 80, height: 60, type: 'normal' },
+            ],
+
+            card_list: [
+                // 卡片列表，每个卡片内有多个元素
+                { id: 'card1_img', name: 'Image 1', x: 20, y: 20, width: 60, height: 40, type: 'image' },
+                { id: 'card1_title', name: 'Title 1', x: 90, y: 20, width: 120, height: 20, type: 'text' },
+                { id: 'card1_desc', name: 'Desc 1', x: 90, y: 45, width: 120, height: 15, type: 'text' },
+                
+                { id: 'card2_img', name: 'Image 2', x: 20, y: 80, width: 60, height: 40, type: 'image' },
+                { id: 'card2_title', name: 'Title 2', x: 90, y: 80, width: 120, height: 20, type: 'text' },
+                { id: 'card2_desc', name: 'Desc 2', x: 90, y: 105, width: 120, height: 15, type: 'text' },
+                
+                { id: 'card3_img', name: 'Image 3', x: 20, y: 140, width: 60, height: 40, type: 'image' },
+                { id: 'card3_title', name: 'Title 3', x: 90, y: 140, width: 120, height: 20, type: 'text' },
+                { id: 'card3_desc', name: 'Desc 3', x: 90, y: 165, width: 120, height: 15, type: 'text' },
+            ],
+
+            form_layout: [
+                // 表单布局，标签和输入框成对
+                { id: 'label1', name: 'Name:', x: 20, y: 20, width: 60, height: 25, type: 'text' },
+                { id: 'input1', name: 'Name Input', x: 90, y: 20, width: 150, height: 25, type: 'text' },
+                
+                { id: 'label2', name: 'Email:', x: 20, y: 55, width: 60, height: 25, type: 'text' },
+                { id: 'input2', name: 'Email Input', x: 90, y: 55, width: 150, height: 25, type: 'text' },
+                
+                { id: 'label3', name: 'Phone:', x: 20, y: 90, width: 60, height: 25, type: 'text' },
+                { id: 'input3', name: 'Phone Input', x: 90, y: 90, width: 150, height: 25, type: 'text' },
+                
+                { id: 'btn1', name: 'Submit', x: 90, y: 130, width: 70, height: 30, type: 'button' },
+                { id: 'btn2', name: 'Cancel', x: 170, y: 130, width: 70, height: 30, type: 'button' },
+            ],
+
+            dashboard: [
+                // 仪表板布局，多个区域
+                // 顶部指标行
+                { id: 'metric1', name: 'Users', x: 20, y: 20, width: 80, height: 50, type: 'normal' },
+                { id: 'metric2', name: 'Sales', x: 120, y: 20, width: 80, height: 50, type: 'normal' },
+                { id: 'metric3', name: 'Orders', x: 220, y: 20, width: 80, height: 50, type: 'normal' },
+                { id: 'metric4', name: 'Revenue', x: 320, y: 20, width: 80, height: 50, type: 'normal' },
+                
+                // 左侧图表区
+                { id: 'chart1', name: 'Chart 1', x: 20, y: 90, width: 180, height: 120, type: 'normal' },
+                { id: 'chart2', name: 'Chart 2', x: 20, y: 230, width: 180, height: 120, type: 'normal' },
+                
+                // 右侧列表区
+                { id: 'list_header', name: 'Recent Items', x: 220, y: 90, width: 180, height: 30, type: 'text' },
+                { id: 'list_item1', name: 'Item 1', x: 220, y: 130, width: 180, height: 25, type: 'text' },
+                { id: 'list_item2', name: 'Item 2', x: 220, y: 160, width: 180, height: 25, type: 'text' },
+                { id: 'list_item3', name: 'Item 3', x: 220, y: 190, width: 180, height: 25, type: 'text' },
+                { id: 'list_item4', name: 'Item 4', x: 220, y: 220, width: 180, height: 25, type: 'text' },
+            ],
+
+            complex_ui: [
+                // 复杂界面，多层嵌套
+                // 头部导航
+                { id: 'logo', name: 'Logo', x: 20, y: 10, width: 60, height: 30, type: 'image' },
+                { id: 'nav1', name: 'Home', x: 100, y: 10, width: 50, height: 30, type: 'button' },
+                { id: 'nav2', name: 'About', x: 160, y: 10, width: 50, height: 30, type: 'button' },
+                { id: 'nav3', name: 'Contact', x: 220, y: 10, width: 50, height: 30, type: 'button' },
+                { id: 'search', name: 'Search', x: 300, y: 10, width: 100, height: 30, type: 'text' },
+                
+                // 主内容区 - 左侧
+                { id: 'sidebar_title', name: 'Categories', x: 20, y: 60, width: 120, height: 25, type: 'text' },
+                { id: 'cat1', name: 'Category 1', x: 20, y: 90, width: 120, height: 20, type: 'text' },
+                { id: 'cat2', name: 'Category 2', x: 20, y: 115, width: 120, height: 20, type: 'text' },
+                { id: 'cat3', name: 'Category 3', x: 20, y: 140, width: 120, height: 20, type: 'text' },
+                
+                // 主内容区 - 右侧
+                { id: 'content_title', name: 'Main Content', x: 160, y: 60, width: 240, height: 30, type: 'text' },
+                { id: 'article1', name: 'Article 1', x: 160, y: 100, width: 110, height: 80, type: 'normal' },
+                { id: 'article2', name: 'Article 2', x: 290, y: 100, width: 110, height: 80, type: 'normal' },
+                { id: 'article3', name: 'Article 3', x: 160, y: 190, width: 110, height: 80, type: 'normal' },
+                { id: 'article4', name: 'Article 4', x: 290, y: 190, width: 110, height: 80, type: 'normal' },
+                
+                // 底部
+                { id: 'footer1', name: 'Footer Link 1', x: 20, y: 290, width: 80, height: 20, type: 'text' },
+                { id: 'footer2', name: 'Footer Link 2', x: 120, y: 290, width: 80, height: 20, type: 'text' },
+                { id: 'footer3', name: 'Footer Link 3', x: 220, y: 290, width: 80, height: 20, type: 'text' },
+                { id: 'footer4', name: 'Copyright', x: 320, y: 290, width: 80, height: 20, type: 'text' },
+            ]
+        };
+
+        // 全局变量
+        let currentCase = 'grid_layout';
+        let rowThreshold = 20;
+        let colThreshold = 20;
+        let minGroupSize = 2;
+        let maxDepth = 4;
+        let currentGroups = [];
+
+        // 核心分组算法
+        function performHierarchicalGrouping(elements) {
+            console.log('🎯 开始层次化分组分析...');
+
+            // 递归分组函数
+            function groupElementsRecursively(elementsToGroup, depth = 1) {
+                if (depth > maxDepth || elementsToGroup.length < minGroupSize) {
+                    return [];
+                }
+
+                console.log(`📊 第${depth}层分组，元素数量: ${elementsToGroup.length}`);
+
+                const groups = [];
+
+                // 1. 按行分组（基于Y坐标）
+                const rowGroups = groupByRows(elementsToGroup);
+                console.log(`📏 发现 ${rowGroups.length} 个行组`);
+
+                rowGroups.forEach((rowGroup, rowIndex) => {
+                    if (rowGroup.length >= minGroupSize) {
+                        // 2. 在每行内按列分组（基于X坐标）
+                        const colGroups = groupByColumns(rowGroup);
+                        console.log(`📐 行${rowIndex + 1} 发现 ${colGroups.length} 个列组`);
+
+                        colGroups.forEach((colGroup, colIndex) => {
+                            if (colGroup.length >= minGroupSize) {
+                                const groupId = `group_${depth}_${rowIndex}_${colIndex}`;
+                                const bounds = calculateGroupBounds(colGroup);
+
+                                const group = {
+                                    id: groupId,
+                                    name: `Level ${depth} Group ${groups.length + 1}`,
+                                    elements: colGroup,
+                                    bounds: bounds,
+                                    level: depth,
+                                    layoutDirection: detectLayoutDirection(colGroup),
+                                    subGroups: []
+                                };
+
+                                // 3. 递归寻找子分组
+                                if (colGroup.length > minGroupSize && depth < maxDepth) {
+                                    group.subGroups = groupElementsRecursively(colGroup, depth + 1);
+                                }
+
+                                groups.push(group);
+                                console.log(`✅ 创建分组: ${group.name}, 元素数: ${colGroup.length}, 子分组: ${group.subGroups.length}`);
+                            }
+                        });
+                    }
+                });
+
+                return groups;
+            }
+
+            const result = groupElementsRecursively(elements);
+            console.log(`🎯 分组完成，共创建 ${countTotalGroups(result)} 个分组`);
+            return result;
+        }
+
+        // 按行分组（检测换行）
+        function groupByRows(elements) {
+            if (elements.length === 0) return [];
+
+            // 按Y坐标排序
+            const sortedByY = [...elements].sort((a, b) => a.y - b.y);
+            const rows = [];
+            let currentRow = [sortedByY[0]];
+
+            for (let i = 1; i < sortedByY.length; i++) {
+                const current = sortedByY[i];
+                const previous = sortedByY[i - 1];
+
+                // 检查是否换行（Y坐标差距超过阈值）
+                const yGap = current.y - (previous.y + previous.height);
+
+                if (yGap > rowThreshold) {
+                    // 换行了，开始新行
+                    rows.push(currentRow);
+                    currentRow = [current];
+                } else {
+                    // 同一行
+                    currentRow.push(current);
+                }
+            }
+
+            if (currentRow.length > 0) {
+                rows.push(currentRow);
+            }
+
+            return rows;
+        }
+
+        // 按列分组（检测换列）
+        function groupByColumns(elements) {
+            if (elements.length === 0) return [];
+
+            // 按X坐标排序
+            const sortedByX = [...elements].sort((a, b) => a.x - b.x);
+            const columns = [];
+            let currentColumn = [sortedByX[0]];
+
+            for (let i = 1; i < sortedByX.length; i++) {
+                const current = sortedByX[i];
+                const previous = sortedByX[i - 1];
+
+                // 检查是否换列（X坐标差距超过阈值）
+                const xGap = current.x - (previous.x + previous.width);
+
+                if (xGap > colThreshold) {
+                    // 换列了，开始新列
+                    columns.push(currentColumn);
+                    currentColumn = [current];
+                } else {
+                    // 同一列
+                    currentColumn.push(current);
+                }
+            }
+
+            if (currentColumn.length > 0) {
+                columns.push(currentColumn);
+            }
+
+            return columns;
+        }
+
+        // 计算分组边界
+        function calculateGroupBounds(elements) {
+            if (elements.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+
+            const minX = Math.min(...elements.map(e => e.x));
+            const minY = Math.min(...elements.map(e => e.y));
+            const maxX = Math.max(...elements.map(e => e.x + e.width));
+            const maxY = Math.max(...elements.map(e => e.y + e.height));
+
+            return {
+                x: minX - 5, // 添加一些边距
+                y: minY - 5,
+                width: maxX - minX + 10,
+                height: maxY - minY + 10
+            };
+        }
+
+        // 检测布局方向
+        function detectLayoutDirection(elements) {
+            if (elements.length < 2) return 'SINGLE';
+
+            // 计算元素间的水平和垂直间距
+            let horizontalGaps = 0;
+            let verticalGaps = 0;
+
+            for (let i = 0; i < elements.length - 1; i++) {
+                for (let j = i + 1; j < elements.length; j++) {
+                    const elem1 = elements[i];
+                    const elem2 = elements[j];
+
+                    const horizontalGap = Math.abs(elem1.x - elem2.x);
+                    const verticalGap = Math.abs(elem1.y - elem2.y);
+
+                    if (horizontalGap > verticalGap) {
+                        horizontalGaps++;
+                    } else {
+                        verticalGaps++;
+                    }
+                }
+            }
+
+            return horizontalGaps > verticalGaps ? 'HORIZONTAL' : 'VERTICAL';
+        }
+
+        // 统计总分组数
+        function countTotalGroups(groups) {
+            let count = groups.length;
+            groups.forEach(group => {
+                count += countTotalGroups(group.subGroups);
+            });
+            return count;
+        }
+
+        // 渲染函数
+        function renderCanvas(elements, canvasId) {
+            const canvas = document.getElementById(canvasId);
+            canvas.innerHTML = '';
+
+            if (!elements || elements.length === 0) return;
+
+            // 计算缩放比例
+            const maxX = Math.max(...elements.map(e => e.x + e.width));
+            const maxY = Math.max(...elements.map(e => e.y + e.height));
+            const scale = Math.min(canvas.clientWidth / maxX, canvas.clientHeight / maxY, 1) * 0.9;
+
+            elements.forEach(element => {
+                const div = document.createElement('div');
+                div.className = `element element-${element.type}`;
+                div.style.left = (element.x * scale) + 'px';
+                div.style.top = (element.y * scale) + 'px';
+                div.style.width = (element.width * scale) + 'px';
+                div.style.height = (element.height * scale) + 'px';
+                div.textContent = element.name.length > 8 ? element.name.substring(0, 8) + '...' : element.name;
+                div.title = `${element.name}\n位置: (${element.x}, ${element.y})\n尺寸: ${element.width} × ${element.height}`;
+                canvas.appendChild(div);
+            });
+        }
+
+        function renderGroupBoundaries(groups, canvasId, scale) {
+            const canvas = document.getElementById(canvasId);
+
+            function renderGroupLevel(groupList, level) {
+                groupList.forEach((group, index) => {
+                    const boundary = document.createElement('div');
+                    boundary.className = `group-boundary level-${level}`;
+                    boundary.style.left = (group.bounds.x * scale) + 'px';
+                    boundary.style.top = (group.bounds.y * scale) + 'px';
+                    boundary.style.width = (group.bounds.width * scale) + 'px';
+                    boundary.style.height = (group.bounds.height * scale) + 'px';
+
+                    const label = document.createElement('div');
+                    label.className = `group-label level-${level}`;
+                    label.textContent = `L${level}-${index + 1}`;
+                    boundary.appendChild(label);
+
+                    canvas.appendChild(boundary);
+
+                    // 递归渲染子分组
+                    if (group.subGroups.length > 0) {
+                        renderGroupLevel(group.subGroups, level + 1);
+                    }
+                });
+            }
+
+            renderGroupLevel(groups, 1);
+        }
+
+        function renderGroupedCanvas(elements, groups) {
+            renderCanvas(elements, 'grouped-canvas');
+
+            // 计算缩放比例
+            const canvas = document.getElementById('grouped-canvas');
+            const maxX = Math.max(...elements.map(e => e.x + e.width));
+            const maxY = Math.max(...elements.map(e => e.y + e.height));
+            const scale = Math.min(canvas.clientWidth / maxX, canvas.clientHeight / maxY, 1) * 0.9;
+
+            renderGroupBoundaries(groups, 'grouped-canvas', scale);
+        }
+
+        function renderGroupTree(groups) {
+            const container = document.getElementById('group-tree');
+            container.innerHTML = '';
+
+            if (groups.length === 0) {
+                container.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px;">没有发现分组</div>';
+                return;
+            }
+
+            function buildTreeText(group, depth = 0, prefix = '') {
+                const indent = '  '.repeat(depth);
+                const icon = group.layoutDirection === 'HORIZONTAL' ? '↔️' :
+                           group.layoutDirection === 'VERTICAL' ? '↕️' : '⚪';
+
+                let html = `<div class="tree-node level-${group.level}">`;
+                html += `${prefix}${icon} ${group.name} (${group.elements.length} 个元素, ${group.layoutDirection})`;
+                html += `</div>`;
+
+                // 显示元素列表
+                const elementNames = group.elements.map(e => e.name).join(', ');
+                html += `<div style="margin-left: ${(depth + 1) * 20}px; color: #6b7280; font-size: 11px;">`;
+                html += `元素: ${elementNames}`;
+                html += `</div>`;
+
+                // 递归显示子分组
+                group.subGroups.forEach((subGroup, index) => {
+                    const isLast = index === group.subGroups.length - 1;
+                    const childPrefix = prefix + (depth === 0 ? '' : '  ') + (isLast ? '└── ' : '├── ');
+                    html += buildTreeText(subGroup, depth + 1, childPrefix);
+                });
+
+                return html;
+            }
+
+            let treeHtml = '';
+            groups.forEach((group, index) => {
+                const isLast = index === groups.length - 1;
+                const prefix = isLast ? '└── ' : '├── ';
+                treeHtml += buildTreeText(group, 0, prefix);
+            });
+
+            container.innerHTML = treeHtml;
+        }
+
+        function updateStats(elements, groups) {
+            const totalGroups = countTotalGroups(groups);
+            const maxGroupDepth = getMaxDepth(groups);
+            const groupedElements = countGroupedElements(groups);
+            const efficiency = elements.length > 0 ? ((groupedElements / elements.length) * 100).toFixed(1) : 0;
+
+            document.getElementById('total-elements').textContent = elements.length;
+            document.getElementById('total-groups').textContent = totalGroups;
+            document.getElementById('max-group-depth').textContent = maxGroupDepth;
+            document.getElementById('grouping-efficiency').textContent = efficiency + '%';
+        }
+
+        function getMaxDepth(groups) {
+            if (groups.length === 0) return 0;
+
+            let maxDepth = 0;
+            groups.forEach(group => {
+                maxDepth = Math.max(maxDepth, group.level);
+                if (group.subGroups.length > 0) {
+                    maxDepth = Math.max(maxDepth, getMaxDepth(group.subGroups));
+                }
+            });
+
+            return maxDepth;
+        }
+
+        function countGroupedElements(groups) {
+            let count = 0;
+            groups.forEach(group => {
+                count += group.elements.length;
+                // 注意：子分组的元素已经包含在父分组中，不要重复计算
+            });
+            return count;
+        }
+
+        function runGrouping() {
+            const elements = testCases[currentCase];
+            currentGroups = performHierarchicalGrouping(elements);
+
+            renderCanvas(elements, 'original-canvas');
+            renderGroupedCanvas(elements, currentGroups);
+            renderGroupTree(currentGroups);
+            updateStats(elements, currentGroups);
+        }
+
+        // 事件监听器
+        function initEventListeners() {
+            // 参数滑块
+            document.getElementById('row-threshold').addEventListener('input', (e) => {
+                rowThreshold = parseInt(e.target.value);
+                document.getElementById('row-threshold-value').textContent = rowThreshold + 'px';
+                runGrouping();
+            });
+
+            document.getElementById('col-threshold').addEventListener('input', (e) => {
+                colThreshold = parseInt(e.target.value);
+                document.getElementById('col-threshold-value').textContent = colThreshold + 'px';
+                runGrouping();
+            });
+
+            document.getElementById('min-group-size').addEventListener('input', (e) => {
+                minGroupSize = parseInt(e.target.value);
+                document.getElementById('min-group-size-value').textContent = minGroupSize + '个';
+                runGrouping();
+            });
+
+            document.getElementById('max-depth').addEventListener('input', (e) => {
+                maxDepth = parseInt(e.target.value);
+                document.getElementById('max-depth-value').textContent = maxDepth + '层';
+                runGrouping();
+            });
+
+            // 测试用例按钮
+            document.querySelectorAll('.test-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.test-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentCase = btn.dataset.case;
+                    runGrouping();
+                });
+            });
+        }
+
+        // 初始化
+        function init() {
+            initEventListeners();
+            runGrouping();
+            console.log('🎯 层次化分组算法已加载');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

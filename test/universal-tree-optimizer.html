@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌳 通用树形结构优化器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .input-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+
+        .input-area {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .result-panel {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .panel-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tree-display {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            min-height: 300px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+
+        .tree-node {
+            margin: 1px 0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .tree-node.invalid {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .tree-node.valid {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .tree-node.root {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+
+        .operations-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #e2e8f0;
+            margin-top: 20px;
+        }
+
+        .operation-step {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #3b82f6;
+            position: relative;
+        }
+
+        .operation-step.remove {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .operation-step.add {
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .operation-step.move {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            background: #3b82f6;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .step-number.remove { background: #ef4444; }
+        .step-number.add { background: #10b981; }
+        .step-number.move { background: #f59e0b; }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .example-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .example-btn {
+            padding: 8px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .example-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .canvas-container {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            position: relative;
+            height: 250px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .element {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .element-container { background-color: #4299e1; border-color: #3182ce; }
+        .element-text { background-color: #ed8936; border-color: #dd6b20; }
+        .element-button { background-color: #9f7aea; border-color: #805ad5; }
+        .element-image { background-color: #48bb78; border-color: #38a169; }
+        .element-normal { background-color: #38b2ac; border-color: #319795; }
+
+        .group-boundary {
+            position: absolute;
+            border: 2px dashed #4299e1;
+            background: rgba(66, 153, 225, 0.1);
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .group-boundary.optimized {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌳 通用树形结构优化器</h1>
+            <p>基于几何位置关系，优化任意树形结构（包括打平结构），输出最小操作步骤</p>
+        </div>
+
+        <div class="content">
+            <!-- 输入区域 -->
+            <div class="input-section">
+                <div class="input-title">📝 输入树形结构数据 (JSON格式)</div>
+                <div class="example-buttons">
+                    <button class="example-btn" data-example="flat">📄 打平结构示例</button>
+                    <button class="example-btn" data-example="wrong_hierarchy">🔀 错误层次示例</button>
+                    <button class="example-btn" data-example="mixed">🌪️ 混合问题示例</button>
+                    <button class="example-btn" data-example="complex">🔥 复杂结构示例</button>
+                </div>
+                <textarea id="input-data" class="input-area" placeholder="请输入节点数据，格式如：
+[
+  {&quot;id&quot;: &quot;root&quot;, &quot;name&quot;: &quot;根节点&quot;, &quot;x&quot;: 0, &quot;y&quot;: 0, &quot;width&quot;: 400, &quot;height&quot;: 300, &quot;type&quot;: &quot;container&quot;, &quot;parent&quot;: null},
+  {&quot;id&quot;: &quot;child1&quot;, &quot;name&quot;: &quot;子节点1&quot;, &quot;x&quot;: 20, &quot;y&quot;: 20, &quot;width&quot;: 180, &quot;height&quot;: 120, &quot;type&quot;: &quot;text&quot;, &quot;parent&quot;: &quot;root&quot;},
+  ...
+]"></textarea>
+                <div class="button-group">
+                    <button class="btn btn-primary" id="parse-btn">🔍 解析结构</button>
+                    <button class="btn btn-success" id="optimize-btn">🚀 开始优化</button>
+                    <button class="btn btn-secondary" id="clear-btn">🗑️ 清空</button>
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value" id="total-nodes">0</div>
+                    <div class="stat-label">总节点数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="invalid-relations">0</div>
+                    <div class="stat-label">无效关系</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="operation-count">0</div>
+                    <div class="stat-label">操作步骤</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tree-depth">0</div>
+                    <div class="stat-label">树深度</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="optimization-score">0%</div>
+                    <div class="stat-label">优化度</div>
+                </div>
+            </div>
+
+            <!-- 结果展示 -->
+            <div class="results-grid">
+                <div class="result-panel">
+                    <div class="panel-title">🔴 原始结构</div>
+                    <div class="canvas-container" id="original-canvas"></div>
+                    <div class="tree-display" id="original-tree"></div>
+                </div>
+                
+                <div class="result-panel">
+                    <div class="panel-title">✅ 优化结构</div>
+                    <div class="canvas-container" id="optimized-canvas"></div>
+                    <div class="tree-display" id="optimized-tree"></div>
+                </div>
+                
+                <div class="result-panel">
+                    <div class="panel-title">📊 问题分析</div>
+                    <div class="tree-display" id="analysis-result"></div>
+                </div>
+            </div>
+
+            <!-- 结构对比 -->
+            <div class="operations-section" id="comparison-section" style="display: none;">
+                <h3 style="margin-bottom: 20px;">🔄 结构对比分析</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div>
+                        <h4 style="color: #dc2626; margin-bottom: 15px;">🔴 原始结构层次</h4>
+                        <div id="original-hierarchy" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; font-family: monospace; font-size: 12px; line-height: 1.5;"></div>
+                    </div>
+                    <div>
+                        <h4 style="color: #059669; margin-bottom: 15px;">✅ 优化后结构层次</h4>
+                        <div id="optimized-hierarchy" style="background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 15px; font-family: monospace; font-size: 12px; line-height: 1.5;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作步骤 -->
+            <div class="operations-section">
+                <h3 style="margin-bottom: 20px;">📋 最小操作步骤</h3>
+                <div id="operations-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 示例数据
+        const examples = {
+            flat: [
+                {"id": "root", "name": "根容器", "x": 0, "y": 0, "width": 400, "height": 300, "type": "container", "parent": null},
+                {"id": "header", "name": "头部区域", "x": 20, "y": 20, "width": 360, "height": 60, "type": "container", "parent": "root"},
+                {"id": "logo", "name": "Logo", "x": 40, "y": 35, "width": 60, "height": 30, "type": "image", "parent": "root"},
+                {"id": "title", "name": "标题", "x": 120, "y": 35, "width": 200, "height": 30, "type": "text", "parent": "root"},
+                {"id": "content", "name": "内容区域", "x": 20, "y": 100, "width": 360, "height": 180, "type": "container", "parent": "root"},
+                {"id": "text1", "name": "文本1", "x": 40, "y": 120, "width": 150, "height": 40, "type": "text", "parent": "root"},
+                {"id": "text2", "name": "文本2", "x": 210, "y": 120, "width": 150, "height": 40, "type": "text", "parent": "root"},
+                {"id": "button1", "name": "按钮1", "x": 40, "y": 180, "width": 100, "height": 30, "type": "button", "parent": "root"},
+                {"id": "button2", "name": "按钮2", "x": 260, "y": 180, "width": 100, "height": 30, "type": "button", "parent": "root"}
+            ],
+
+            wrong_hierarchy: [
+                {"id": "root", "name": "根容器", "x": 0, "y": 0, "width": 350, "height": 250, "type": "container", "parent": null},
+                {"id": "outer", "name": "外层容器", "x": 20, "y": 20, "width": 310, "height": 210, "type": "container", "parent": "root"},
+                {"id": "middle", "name": "中层容器", "x": 40, "y": 40, "width": 270, "height": 170, "type": "container", "parent": "root"},
+                {"id": "inner", "name": "内层容器", "x": 60, "y": 60, "width": 230, "height": 130, "type": "container", "parent": "outer"},
+                {"id": "content1", "name": "内容1", "x": 80, "y": 80, "width": 80, "height": 60, "type": "text", "parent": "middle"},
+                {"id": "content2", "name": "内容2", "x": 180, "y": 80, "width": 80, "height": 60, "type": "text", "parent": "inner"}
+            ],
+
+            mixed: [
+                {"id": "root", "name": "根容器", "x": 0, "y": 0, "width": 500, "height": 400, "type": "container", "parent": null},
+                {"id": "header", "name": "头部", "x": 20, "y": 20, "width": 460, "height": 80, "type": "container", "parent": "root"},
+                {"id": "main", "name": "主体", "x": 20, "y": 120, "width": 460, "height": 260, "type": "container", "parent": "root"},
+                {"id": "sidebar", "name": "侧边栏", "x": 40, "y": 140, "width": 120, "height": 220, "type": "container", "parent": "root"},
+                {"id": "content", "name": "内容区", "x": 180, "y": 140, "width": 280, "height": 220, "type": "container", "parent": "header"},
+                {"id": "logo", "name": "Logo", "x": 40, "y": 40, "width": 60, "height": 40, "type": "image", "parent": "main"},
+                {"id": "nav", "name": "导航", "x": 120, "y": 40, "width": 300, "height": 40, "type": "text", "parent": "sidebar"},
+                {"id": "widget1", "name": "组件1", "x": 50, "y": 160, "width": 100, "height": 80, "type": "normal", "parent": "content"},
+                {"id": "widget2", "name": "组件2", "x": 50, "y": 260, "width": 100, "height": 80, "type": "normal", "parent": "header"},
+                {"id": "article", "name": "文章", "x": 200, "y": 160, "width": 240, "height": 180, "type": "text", "parent": "sidebar"}
+            ],
+
+            complex: [
+                {"id": "app", "name": "应用根节点", "x": 0, "y": 0, "width": 800, "height": 600, "type": "container", "parent": null},
+                {"id": "topbar", "name": "顶部栏", "x": 0, "y": 0, "width": 800, "height": 50, "type": "container", "parent": "app"},
+                {"id": "workspace", "name": "工作区", "x": 0, "y": 50, "width": 800, "height": 550, "type": "container", "parent": "app"},
+                {"id": "menu", "name": "菜单", "x": 10, "y": 10, "width": 100, "height": 30, "type": "button", "parent": "app"},
+                {"id": "search", "name": "搜索框", "x": 150, "y": 10, "width": 200, "height": 30, "type": "text", "parent": "workspace"},
+                {"id": "user", "name": "用户信息", "x": 650, "y": 10, "width": 140, "height": 30, "type": "text", "parent": "app"},
+                {"id": "sidebar", "name": "侧边栏", "x": 20, "y": 70, "width": 200, "height": 510, "type": "container", "parent": "app"},
+                {"id": "main_content", "name": "主内容", "x": 240, "y": 70, "width": 540, "height": 510, "type": "container", "parent": "topbar"},
+                {"id": "nav_item1", "name": "导航项1", "x": 30, "y": 90, "width": 180, "height": 40, "type": "button", "parent": "main_content"},
+                {"id": "nav_item2", "name": "导航项2", "x": 30, "y": 140, "width": 180, "height": 40, "type": "button", "parent": "workspace"},
+                {"id": "content_header", "name": "内容头部", "x": 260, "y": 90, "width": 500, "height": 60, "type": "container", "parent": "sidebar"},
+                {"id": "content_body", "name": "内容主体", "x": 260, "y": 170, "width": 500, "height": 390, "type": "container", "parent": "app"},
+                {"id": "title", "name": "标题", "x": 280, "y": 110, "width": 300, "height": 20, "type": "text", "parent": "content_body"},
+                {"id": "subtitle", "name": "副标题", "x": 280, "y": 130, "width": 200, "height": 15, "type": "text", "parent": "app"},
+                {"id": "article_text", "name": "文章内容", "x": 280, "y": 190, "width": 460, "height": 350, "type": "text", "parent": "content_header"}
+            ]
+        };
+
+        let currentData = null;
+        let originalStructure = null;
+        let optimizedStructure = null;
+        let operations = [];
+
+        // 几何关系检测
+        function isElementContained(containerBounds, elementBounds) {
+            return containerBounds.minX <= elementBounds.minX &&
+                   containerBounds.minY <= elementBounds.minY &&
+                   containerBounds.maxX >= elementBounds.maxX &&
+                   containerBounds.maxY >= elementBounds.maxY;
+        }
+
+        function getElementBounds(element) {
+            return {
+                minX: element.x,
+                minY: element.y,
+                maxX: element.x + element.width,
+                maxY: element.y + element.height
+            };
+        }
+
+        function hasPartialOverlap(bounds1, bounds2) {
+            const hasOverlap = !(bounds1.maxX <= bounds2.minX ||
+                                bounds2.maxX <= bounds1.minX ||
+                                bounds1.maxY <= bounds2.minY ||
+                                bounds2.maxY <= bounds1.minY);
+            const isContained1 = isElementContained(bounds1, bounds2);
+            const isContained2 = isElementContained(bounds2, bounds1);
+            return hasOverlap && !isContained1 && !isContained2;
+        }
+
+        // 核心优化算法
+        function optimizeTreeStructure(nodes) {
+            console.log('🚀 开始优化树形结构...');
+
+            // 1. 分析当前结构问题
+            const problems = analyzeStructureProblems(nodes);
+            console.log('📊 发现问题:', problems);
+
+            // 2. 基于几何关系构建理想结构
+            const idealStructure = buildIdealStructure(nodes);
+            console.log('🎯 理想结构:', idealStructure);
+
+            // 3. 计算最小操作步骤
+            const operations = calculateMinimalOperations(nodes, idealStructure);
+            console.log('📋 操作步骤:', operations);
+
+            // 4. 应用操作生成优化后结构
+            const optimizedNodes = applyOperations(nodes, operations);
+
+            return {
+                originalNodes: nodes,
+                optimizedNodes: optimizedNodes,
+                operations: operations,
+                problems: problems,
+                stats: calculateOptimizationStats(nodes, optimizedNodes, operations)
+            };
+        }
+
+        // 分析结构问题
+        function analyzeStructureProblems(nodes) {
+            const problems = [];
+            const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+            nodes.forEach(node => {
+                if (node.parent === null) return; // 跳过根节点
+
+                const parent = nodeMap.get(node.parent);
+                if (!parent) {
+                    problems.push({
+                        type: 'missing_parent',
+                        node: node.id,
+                        description: `节点 ${node.name} 的父节点 ${node.parent} 不存在`
+                    });
+                    return;
+                }
+
+                // 检查几何包含关系
+                const parentBounds = getElementBounds(parent);
+                const nodeBounds = getElementBounds(node);
+
+                if (!isElementContained(parentBounds, nodeBounds)) {
+                    problems.push({
+                        type: 'geometric_mismatch',
+                        node: node.id,
+                        parent: parent.id,
+                        description: `节点 ${node.name} 在几何上不被父节点 ${parent.name} 包含`
+                    });
+                }
+
+                // 检查重叠冲突
+                nodes.forEach(otherNode => {
+                    if (otherNode.id === node.id || otherNode.parent !== node.parent) return;
+
+                    const otherBounds = getElementBounds(otherNode);
+                    if (hasPartialOverlap(nodeBounds, otherBounds)) {
+                        problems.push({
+                            type: 'sibling_overlap',
+                            node: node.id,
+                            conflictWith: otherNode.id,
+                            description: `节点 ${node.name} 与同级节点 ${otherNode.name} 存在重叠`
+                        });
+                    }
+                });
+            });
+
+            return problems;
+        }
+
+        // 构建理想结构
+        function buildIdealStructure(nodes) {
+            console.log('🔍 构建理想结构...');
+
+            // 1. 找出所有可能的包含关系
+            const containmentRelations = [];
+
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = 0; j < nodes.length; j++) {
+                    if (i === j) continue;
+
+                    const container = nodes[i];
+                    const element = nodes[j];
+
+                    const containerBounds = getElementBounds(container);
+                    const elementBounds = getElementBounds(element);
+
+                    if (isElementContained(containerBounds, elementBounds)) {
+                        containmentRelations.push({
+                            parent: container.id,
+                            child: element.id,
+                            parentNode: container,
+                            childNode: element
+                        });
+                    }
+                }
+            }
+
+            console.log('📦 包含关系:', containmentRelations);
+
+            // 2. 过滤冲突关系
+            const validRelations = containmentRelations.filter(relation => {
+                const childBounds = getElementBounds(relation.childNode);
+
+                // 检查是否与其他同级元素重叠
+                const siblings = containmentRelations
+                    .filter(r => r.parent === relation.parent && r.child !== relation.child)
+                    .map(r => r.childNode);
+
+                return !siblings.some(sibling => {
+                    const siblingBounds = getElementBounds(sibling);
+                    return hasPartialOverlap(childBounds, siblingBounds);
+                });
+            });
+
+            // 3. 构建层次结构
+            const hierarchy = buildHierarchy(validRelations, nodes);
+
+            return hierarchy;
+        }
+
+        // 构建层次结构
+        function buildHierarchy(relations, allNodes) {
+            const childrenMap = new Map();
+            const parentMap = new Map();
+
+            // 构建父子映射
+            relations.forEach(relation => {
+                if (!childrenMap.has(relation.parent)) {
+                    childrenMap.set(relation.parent, []);
+                }
+                childrenMap.get(relation.parent).push(relation.child);
+                parentMap.set(relation.child, relation.parent);
+            });
+
+            // 找到根节点（没有父节点的节点）
+            const rootNodes = allNodes.filter(node => !parentMap.has(node.id));
+
+            // 构建树形结构
+            function buildTree(nodeId, depth = 0) {
+                const node = allNodes.find(n => n.id === nodeId);
+                const children = childrenMap.get(nodeId) || [];
+
+                return {
+                    ...node,
+                    children: children.map(childId => buildTree(childId, depth + 1)),
+                    depth: depth
+                };
+            }
+
+            return rootNodes.map(root => buildTree(root.id));
+        }
+
+        // 计算最小操作步骤
+        function calculateMinimalOperations(originalNodes, idealStructure) {
+            const operations = [];
+            const originalMap = new Map(originalNodes.map(n => [n.id, n]));
+
+            // 扁平化理想结构
+            function flattenStructure(nodes, parentId = null) {
+                const result = [];
+                nodes.forEach(node => {
+                    result.push({
+                        id: node.id,
+                        parent: parentId,
+                        node: node
+                    });
+                    if (node.children && node.children.length > 0) {
+                        result.push(...flattenStructure(node.children, node.id));
+                    }
+                });
+                return result;
+            }
+
+            const idealFlat = flattenStructure(idealStructure);
+
+            // 比较原始结构和理想结构
+            idealFlat.forEach(idealNode => {
+                const originalNode = originalMap.get(idealNode.id);
+
+                if (originalNode.parent !== idealNode.parent) {
+                    operations.push({
+                        type: 'move',
+                        nodeId: idealNode.id,
+                        nodeName: originalNode.name,
+                        fromParent: originalNode.parent,
+                        toParent: idealNode.parent,
+                        description: `将 ${originalNode.name} 从 ${originalNode.parent || 'root'} 移动到 ${idealNode.parent || 'root'}`
+                    });
+                }
+            });
+
+            // 检查需要删除的无效关系
+            originalNodes.forEach(node => {
+                if (node.parent === null) return;
+
+                const idealNode = idealFlat.find(n => n.id === node.id);
+                if (!idealNode) {
+                    operations.push({
+                        type: 'remove',
+                        nodeId: node.id,
+                        nodeName: node.name,
+                        description: `移除无效节点 ${node.name}`
+                    });
+                }
+            });
+
+            return operations;
+        }
+
+        // 应用操作
+        function applyOperations(originalNodes, operations) {
+            const result = JSON.parse(JSON.stringify(originalNodes)); // 深拷贝
+
+            operations.forEach(operation => {
+                const node = result.find(n => n.id === operation.nodeId);
+                if (!node) return;
+
+                switch (operation.type) {
+                    case 'move':
+                        node.parent = operation.toParent;
+                        break;
+                    case 'remove':
+                        const index = result.findIndex(n => n.id === operation.nodeId);
+                        if (index !== -1) {
+                            result.splice(index, 1);
+                        }
+                        break;
+                }
+            });
+
+            return result;
+        }
+
+        // 计算优化统计
+        function calculateOptimizationStats(original, optimized, operations) {
+            const originalProblems = analyzeStructureProblems(original);
+            const optimizedProblems = analyzeStructureProblems(optimized);
+
+            const originalDepth = calculateMaxDepth(original);
+            const optimizedDepth = calculateMaxDepth(optimized);
+
+            const problemsFixed = originalProblems.length - optimizedProblems.length;
+            const optimizationRate = originalProblems.length > 0 ?
+                (problemsFixed / originalProblems.length * 100).toFixed(1) : 100;
+
+            return {
+                originalProblems: originalProblems.length,
+                optimizedProblems: optimizedProblems.length,
+                problemsFixed: problemsFixed,
+                operationCount: operations.length,
+                originalDepth: originalDepth,
+                optimizedDepth: optimizedDepth,
+                optimizationRate: optimizationRate
+            };
+        }
+
+        // 计算树的最大深度
+        function calculateMaxDepth(nodes) {
+            const nodeMap = new Map(nodes.map(n => [n.id, n]));
+            let maxDepth = 0;
+
+            function getDepth(nodeId, visited = new Set()) {
+                if (visited.has(nodeId)) return 0; // 避免循环引用
+                visited.add(nodeId);
+
+                const node = nodeMap.get(nodeId);
+                if (!node || !node.parent) return 1;
+
+                return 1 + getDepth(node.parent, visited);
+            }
+
+            nodes.forEach(node => {
+                const depth = getDepth(node.id);
+                maxDepth = Math.max(maxDepth, depth);
+            });
+
+            return maxDepth;
+        }
+
+        // 渲染函数
+        function renderTreeStructure(nodes, containerId, isOptimized = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            if (!nodes || nodes.length === 0) {
+                container.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 20px;">暂无数据</div>';
+                return;
+            }
+
+            // 构建树形显示
+            const nodeMap = new Map(nodes.map(n => [n.id, n]));
+            const rootNodes = nodes.filter(n => n.parent === null);
+
+            function renderNode(node, depth = 0, isLast = false, prefix = '') {
+                const icon = node.type === 'container' ? '📦' :
+                           node.type === 'text' ? '📝' :
+                           node.type === 'button' ? '🔘' :
+                           node.type === 'image' ? '🖼️' : '⚪';
+
+                // 构建树形连接线
+                const connector = depth === 0 ? '' : (isLast ? '└── ' : '├── ');
+                const currentPrefix = prefix + connector;
+
+                // 添加节点信息
+                const nodeInfo = `${currentPrefix}${icon} ${node.name}`;
+                const nodeDetails = isOptimized ?
+                    ` <span style="color: #6b7280; font-size: 0.9em;">[${node.type}] (${node.x},${node.y}) ${node.width}×${node.height}</span>` :
+                    ` <span style="color: #6b7280; font-size: 0.9em;">(${node.id})</span>`;
+
+                let html = `<div class="tree-node ${isOptimized ? 'valid' : ''}" style="font-family: monospace; line-height: 1.4;">
+                    ${nodeInfo}${nodeDetails}
+                </div>`;
+
+                // 渲染子节点
+                const children = nodes.filter(n => n.parent === node.id);
+                children.forEach((child, index) => {
+                    const isChildLast = index === children.length - 1;
+                    const childPrefix = prefix + (depth === 0 ? '' : (isLast ? '    ' : '│   '));
+                    html += renderNode(child, depth + 1, isChildLast, childPrefix);
+                });
+
+                return html;
+            }
+
+            let treeHtml = '';
+
+            if (isOptimized) {
+                // 为优化后的结构添加统计信息
+                const stats = calculateTreeStats(nodes);
+                treeHtml += `<div style="background: #f0f9ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #0ea5e9;">
+                    <strong>🌳 优化后树形结构</strong><br>
+                    <span style="font-size: 0.9em; color: #6b7280;">
+                        节点总数: ${stats.totalNodes} | 最大深度: ${stats.maxDepth} | 容器数: ${stats.containerCount} | 叶子节点: ${stats.leafNodes}
+                    </span>
+                </div>`;
+            }
+
+            rootNodes.forEach((root, index) => {
+                const isLast = index === rootNodes.length - 1;
+                treeHtml += renderNode(root, 0, isLast);
+            });
+
+            // 如果没有根节点，显示所有节点（可能是数据问题）
+            if (rootNodes.length === 0) {
+                treeHtml += '<div style="color: #dc2626; margin-bottom: 10px;">⚠️ 警告：未找到根节点，显示所有节点：</div>';
+                nodes.forEach(node => {
+                    treeHtml += renderNode(node, 0, false);
+                });
+            }
+
+            container.innerHTML = treeHtml;
+        }
+
+        // 计算树形结构统计信息
+        function calculateTreeStats(nodes) {
+            const containerCount = nodes.filter(n => n.type === 'container').length;
+            const leafNodes = nodes.filter(n => !nodes.some(child => child.parent === n.id)).length;
+            const maxDepth = calculateMaxDepth(nodes);
+
+            return {
+                totalNodes: nodes.length,
+                containerCount: containerCount,
+                leafNodes: leafNodes,
+                maxDepth: maxDepth
+            };
+        }
+
+        function renderCanvas(nodes, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            if (!nodes || nodes.length === 0) return;
+
+            // 计算缩放比例
+            const maxX = Math.max(...nodes.map(n => n.x + n.width));
+            const maxY = Math.max(...nodes.map(n => n.y + n.height));
+            const scale = Math.min(container.clientWidth / maxX, container.clientHeight / maxY, 1) * 0.9;
+
+            nodes.forEach(node => {
+                const div = document.createElement('div');
+                div.className = `element element-${node.type}`;
+                div.style.left = (node.x * scale) + 'px';
+                div.style.top = (node.y * scale) + 'px';
+                div.style.width = (node.width * scale) + 'px';
+                div.style.height = (node.height * scale) + 'px';
+                div.textContent = node.name.length > 8 ? node.name.substring(0, 8) + '...' : node.name;
+                div.title = `${node.name}\n位置: (${node.x}, ${node.y})\n尺寸: ${node.width} × ${node.height}\n父节点: ${node.parent || 'root'}`;
+                container.appendChild(div);
+            });
+        }
+
+        function renderOperations(operations) {
+            const container = document.getElementById('operations-list');
+            container.innerHTML = '';
+
+            if (operations.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">无需操作，结构已优化</div>';
+                return;
+            }
+
+            operations.forEach((operation, index) => {
+                const div = document.createElement('div');
+                div.className = `operation-step ${operation.type}`;
+
+                const stepNumber = document.createElement('div');
+                stepNumber.className = `step-number ${operation.type}`;
+                stepNumber.textContent = index + 1;
+
+                const title = document.createElement('div');
+                title.className = 'operation-title';
+                title.textContent = `${operation.type === 'move' ? '🔄 移动节点' :
+                                   operation.type === 'remove' ? '🗑️ 删除节点' :
+                                   '➕ 添加节点'}`;
+
+                const details = document.createElement('div');
+                details.className = 'operation-details';
+                details.textContent = operation.description;
+
+                div.appendChild(stepNumber);
+                div.appendChild(title);
+                div.appendChild(details);
+                container.appendChild(div);
+            });
+        }
+
+        function renderAnalysis(problems) {
+            const container = document.getElementById('analysis-result');
+            container.innerHTML = '';
+
+            if (problems.length === 0) {
+                container.innerHTML = '<div style="color: #059669; text-align: center; padding: 20px;">✅ 结构完美，无问题发现</div>';
+                return;
+            }
+
+            let analysisHtml = `<div style="margin-bottom: 15px; font-weight: 600; color: #dc2626;">发现 ${problems.length} 个问题:</div>`;
+
+            problems.forEach((problem, index) => {
+                const icon = problem.type === 'geometric_mismatch' ? '📐' :
+                           problem.type === 'missing_parent' ? '🔗' :
+                           problem.type === 'sibling_overlap' ? '⚠️' : '❓';
+
+                analysisHtml += `<div style="margin: 8px 0; padding: 8px; background: #fef2f2; border-radius: 4px; border-left: 3px solid #ef4444;">
+                    <strong>${icon} 问题 ${index + 1}:</strong><br>
+                    <span style="font-size: 0.9em; color: #6b7280;">${problem.description}</span>
+                </div>`;
+            });
+
+            container.innerHTML = analysisHtml;
+        }
+
+        function updateStats(stats) {
+            document.getElementById('total-nodes').textContent = stats.originalProblems + stats.optimizedProblems || 0;
+            document.getElementById('invalid-relations').textContent = stats.originalProblems || 0;
+            document.getElementById('operation-count').textContent = stats.operationCount || 0;
+            document.getElementById('tree-depth').textContent = `${stats.originalDepth || 0} → ${stats.optimizedDepth || 0}`;
+            document.getElementById('optimization-score').textContent = (stats.optimizationRate || 0) + '%';
+        }
+
+        // 渲染优化对比
+        function renderOptimizationComparison(originalNodes, optimizedNodes) {
+            document.getElementById('comparison-section').style.display = 'block';
+
+            // 渲染原始层次结构
+            renderHierarchyText(originalNodes, 'original-hierarchy');
+
+            // 渲染优化后层次结构
+            renderHierarchyText(optimizedNodes, 'optimized-hierarchy');
+        }
+
+        // 渲染文本形式的层次结构
+        function renderHierarchyText(nodes, containerId) {
+            const container = document.getElementById(containerId);
+
+            if (!nodes || nodes.length === 0) {
+                container.innerHTML = '<div style="color: #6b7280;">暂无数据</div>';
+                return;
+            }
+
+            const rootNodes = nodes.filter(n => n.parent === null);
+
+            function buildHierarchyText(node, depth = 0, isLast = false, prefix = '') {
+                const icon = node.type === 'container' ? '📦' :
+                           node.type === 'text' ? '📝' :
+                           node.type === 'button' ? '🔘' :
+                           node.type === 'image' ? '🖼️' : '⚪';
+
+                const connector = depth === 0 ? '' : (isLast ? '└── ' : '├── ');
+                const currentPrefix = prefix + connector;
+
+                let text = `${currentPrefix}${icon} ${node.name}\n`;
+
+                // 添加子节点
+                const children = nodes.filter(n => n.parent === node.id);
+                children.forEach((child, index) => {
+                    const isChildLast = index === children.length - 1;
+                    const childPrefix = prefix + (depth === 0 ? '' : (isLast ? '    ' : '│   '));
+                    text += buildHierarchyText(child, depth + 1, isChildLast, childPrefix);
+                });
+
+                return text;
+            }
+
+            let hierarchyText = '';
+            rootNodes.forEach((root, index) => {
+                const isLast = index === rootNodes.length - 1;
+                hierarchyText += buildHierarchyText(root, 0, isLast);
+            });
+
+            // 如果没有根节点
+            if (rootNodes.length === 0) {
+                hierarchyText = '⚠️ 未找到根节点\n\n所有节点:\n';
+                nodes.forEach(node => {
+                    hierarchyText += `${node.type === 'container' ? '📦' : '⚪'} ${node.name} (parent: ${node.parent || 'null'})\n`;
+                });
+            }
+
+            container.textContent = hierarchyText;
+        }
+
+        // 事件处理
+        function initEventListeners() {
+            // 示例按钮
+            document.querySelectorAll('.example-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const example = examples[btn.dataset.example];
+                    document.getElementById('input-data').value = JSON.stringify(example, null, 2);
+                });
+            });
+
+            // 解析按钮
+            document.getElementById('parse-btn').addEventListener('click', () => {
+                try {
+                    const inputData = document.getElementById('input-data').value;
+                    currentData = JSON.parse(inputData);
+
+                    renderTreeStructure(currentData, 'original-tree');
+                    renderCanvas(currentData, 'original-canvas');
+
+                    const problems = analyzeStructureProblems(currentData);
+                    renderAnalysis(problems);
+
+                    document.getElementById('total-nodes').textContent = currentData.length;
+                    document.getElementById('invalid-relations').textContent = problems.length;
+
+                    console.log('✅ 数据解析成功');
+                } catch (error) {
+                    alert('数据格式错误: ' + error.message);
+                }
+            });
+
+            // 优化按钮
+            document.getElementById('optimize-btn').addEventListener('click', () => {
+                if (!currentData) {
+                    alert('请先解析数据');
+                    return;
+                }
+
+                try {
+                    const result = optimizeTreeStructure(currentData);
+
+                    renderTreeStructure(result.optimizedNodes, 'optimized-tree', true);
+                    renderCanvas(result.optimizedNodes, 'optimized-canvas');
+                    renderOperations(result.operations);
+                    updateStats(result.stats);
+
+                    // 显示优化对比
+                    renderOptimizationComparison(currentData, result.optimizedNodes);
+
+                    console.log('✅ 优化完成', result);
+                } catch (error) {
+                    alert('优化失败: ' + error.message);
+                    console.error(error);
+                }
+            });
+
+            // 清空按钮
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                document.getElementById('input-data').value = '';
+                currentData = null;
+
+                ['original-tree', 'optimized-tree', 'analysis-result', 'operations-list'].forEach(id => {
+                    document.getElementById(id).innerHTML = '';
+                });
+
+                ['original-canvas', 'optimized-canvas'].forEach(id => {
+                    document.getElementById(id).innerHTML = '';
+                });
+
+                ['total-nodes', 'invalid-relations', 'operation-count', 'tree-depth', 'optimization-score'].forEach(id => {
+                    document.getElementById(id).textContent = '0';
+                });
+            });
+        }
+
+        // 初始化
+        function init() {
+            initEventListeners();
+            console.log('🌳 通用树形结构优化器已加载');
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

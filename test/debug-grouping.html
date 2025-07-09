@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分组算法调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .test-case {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .canvas {
+            position: relative;
+            background: #f9f9f9;
+            border: 1px solid #ccc;
+            height: 300px;
+            margin: 10px 0;
+        }
+        .element {
+            position: absolute;
+            border: 2px solid #333;
+            background: rgba(100, 150, 200, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .group-boundary {
+            position: absolute;
+            border: 2px dashed red;
+            background: rgba(255, 0, 0, 0.1);
+            pointer-events: none;
+        }
+        .results {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .debug {
+            background: #e8e8e8;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>分组算法调试工具</h1>
+        
+        <div class="test-case">
+            <h3>测试用例: 简单卡片布局</h3>
+            <div class="canvas" id="canvas1"></div>
+            <div class="results" id="results1"></div>
+            <div class="debug" id="debug1"></div>
+        </div>
+    </div>
+
+    <script>
+        // 简单测试数据
+        const testData = [
+            { id: 'container', name: 'Container', x: 10, y: 10, width: 200, height: 150 },
+            { id: 'image', name: 'Image', x: 20, y: 20, width: 180, height: 60 },
+            { id: 'title', name: 'Title', x: 20, y: 90, width: 180, height: 20 },
+            { id: 'button', name: 'Button', x: 20, y: 120, width: 80, height: 30 },
+        ];
+
+        // 分组算法
+        function isElementContained(containerBounds, elementBounds) {
+            const result = containerBounds.minX <= elementBounds.minX &&
+                          containerBounds.minY <= elementBounds.minY &&
+                          containerBounds.maxX >= elementBounds.maxX &&
+                          containerBounds.maxY >= elementBounds.maxY;
+            console.log(`包含检查: Container(${containerBounds.minX},${containerBounds.minY},${containerBounds.maxX},${containerBounds.maxY}) 包含 Element(${elementBounds.minX},${elementBounds.minY},${elementBounds.maxX},${elementBounds.maxY}) = ${result}`);
+            return result;
+        }
+
+        function hasPartialOverlap(bounds1, bounds2) {
+            const hasOverlap = !(bounds1.maxX <= bounds2.minX ||
+                                bounds2.maxX <= bounds1.minX ||
+                                bounds1.maxY <= bounds2.minY ||
+                                bounds2.maxY <= bounds1.minY);
+            const isContained1 = isElementContained(bounds1, bounds2);
+            const isContained2 = isElementContained(bounds2, bounds1);
+            const result = hasOverlap && !isContained1 && !isContained2;
+            console.log(`重叠检查: 有重叠=${hasOverlap}, 包含1=${isContained1}, 包含2=${isContained2}, 部分重叠=${result}`);
+            return result;
+        }
+
+        function performGeometricGrouping(elements) {
+            console.log('=== 开始分组分析 ===');
+            console.log('输入元素:', elements);
+            
+            const elementsWithBounds = elements.map(elem => ({
+                ...elem,
+                bounds: {
+                    minX: elem.x,
+                    minY: elem.y,
+                    maxX: elem.x + elem.width,
+                    maxY: elem.y + elem.height
+                }
+            }));
+
+            console.log('元素边界:', elementsWithBounds.map(e => ({
+                name: e.name,
+                bounds: e.bounds
+            })));
+
+            // 识别包含关系
+            const parentChildRelations = [];
+            console.log('\n--- 检查包含关系 ---');
+            for (let i = 0; i < elementsWithBounds.length; i++) {
+                for (let j = 0; j < elementsWithBounds.length; j++) {
+                    if (i === j) continue;
+
+                    const elem1 = elementsWithBounds[i];
+                    const elem2 = elementsWithBounds[j];
+
+                    console.log(`检查 ${elem1.name} 是否包含 ${elem2.name}`);
+                    if (isElementContained(elem1.bounds, elem2.bounds)) {
+                        parentChildRelations.push({ parent: elem1, child: elem2 });
+                        console.log(`✓ 发现包含关系: ${elem1.name} 包含 ${elem2.name}`);
+                    }
+                }
+            }
+
+            console.log('\n包含关系总结:', parentChildRelations.map(r => `${r.parent.name} -> ${r.child.name}`));
+
+            // 识别冲突元素
+            const conflictElements = new Set();
+            console.log('\n--- 检查冲突 ---');
+            for (let i = 0; i < elementsWithBounds.length; i++) {
+                for (let j = i + 1; j < elementsWithBounds.length; j++) {
+                    const elem1 = elementsWithBounds[i];
+                    const elem2 = elementsWithBounds[j];
+
+                    console.log(`检查冲突: ${elem1.name} vs ${elem2.name}`);
+                    if (hasPartialOverlap(elem1.bounds, elem2.bounds)) {
+                        conflictElements.add(elem1.id);
+                        conflictElements.add(elem2.id);
+                        console.log(`⚠️ 发现冲突: ${elem1.name} 与 ${elem2.name}`);
+                    }
+                }
+            }
+
+            // 构建分组
+            console.log('\n--- 构建分组 ---');
+            const validRelations = parentChildRelations.filter(relation =>
+                !conflictElements.has(relation.parent.id) && !conflictElements.has(relation.child.id)
+            );
+
+            console.log('有效关系:', validRelations.map(r => `${r.parent.name} -> ${r.child.name}`));
+
+            const childrenMap = new Map();
+            for (const relation of validRelations) {
+                if (!childrenMap.has(relation.parent.id)) {
+                    childrenMap.set(relation.parent.id, []);
+                }
+                childrenMap.get(relation.parent.id).push(relation.child);
+            }
+
+            const groups = [];
+            const rootElements = elementsWithBounds.filter(elem =>
+                !validRelations.some(r => r.child.id === elem.id) && !conflictElements.has(elem.id)
+            );
+
+            console.log('根元素:', rootElements.map(e => e.name));
+
+            for (const rootElement of rootElements) {
+                const children = childrenMap.get(rootElement.id) || [];
+                if (children.length > 0) {
+                    const group = {
+                        element: rootElement,
+                        directChildren: children,
+                        layoutDirection: 'VERTICAL'
+                    };
+                    groups.push(group);
+                    console.log(`✓ 创建分组: ${rootElement.name} 包含 [${children.map(c => c.name).join(', ')}]`);
+                }
+            }
+
+            const result = {
+                groups,
+                conflicts: elementsWithBounds.filter(e => conflictElements.has(e.id)),
+                relations: validRelations
+            };
+
+            console.log('\n=== 分组结果 ===');
+            console.log('分组数量:', result.groups.length);
+            console.log('冲突数量:', result.conflicts.length);
+            console.log('=================');
+
+            return result;
+        }
+
+        // 渲染函数
+        function renderTest() {
+            const canvas = document.getElementById('canvas1');
+            const results = document.getElementById('results1');
+            const debug = document.getElementById('debug1');
+            
+            // 清空控制台日志
+            console.clear();
+            
+            // 执行分组
+            const result = performGeometricGrouping(testData);
+            
+            // 渲染元素
+            canvas.innerHTML = '';
+            testData.forEach(element => {
+                const div = document.createElement('div');
+                div.className = 'element';
+                div.style.left = element.x + 'px';
+                div.style.top = element.y + 'px';
+                div.style.width = element.width + 'px';
+                div.style.height = element.height + 'px';
+                div.textContent = element.name;
+                canvas.appendChild(div);
+            });
+            
+            // 渲染分组边界
+            result.groups.forEach((group, index) => {
+                const allElements = [group.element, ...group.directChildren];
+                const minX = Math.min(...allElements.map(e => e.x));
+                const minY = Math.min(...allElements.map(e => e.y));
+                const maxX = Math.max(...allElements.map(e => e.x + e.width));
+                const maxY = Math.max(...allElements.map(e => e.y + e.height));
+
+                const boundary = document.createElement('div');
+                boundary.className = 'group-boundary';
+                boundary.style.left = (minX - 2) + 'px';
+                boundary.style.top = (minY - 2) + 'px';
+                boundary.style.width = (maxX - minX + 4) + 'px';
+                boundary.style.height = (maxY - minY + 4) + 'px';
+                canvas.appendChild(boundary);
+            });
+            
+            // 显示结果
+            let resultText = `分组结果:\n`;
+            if (result.groups.length > 0) {
+                result.groups.forEach((group, index) => {
+                    resultText += `Group ${index + 1}: ${group.element.name} 包含 [${group.directChildren.map(c => c.name).join(', ')}]\n`;
+                });
+            } else {
+                resultText += '没有发现分组\n';
+            }
+            
+            if (result.conflicts.length > 0) {
+                resultText += `\n冲突元素: ${result.conflicts.map(c => c.name).join(', ')}`;
+            }
+            
+            results.textContent = resultText;
+            
+            // 显示调试信息
+            debug.textContent = `调试信息:
+总元素: ${testData.length}
+包含关系: ${result.relations.length}
+分组数量: ${result.groups.length}
+冲突元素: ${result.conflicts.length}
+
+详细关系:
+${result.relations.map(r => `${r.parent.name} -> ${r.child.name}`).join('\n')}`;
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', renderTest);
+    </script>
+</body>
+</html>

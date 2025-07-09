@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌳 交互式树形结构对比</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .tree-panel {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            min-height: 600px;
+        }
+
+        .panel-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tree-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        /* 树节点样式 */
+        .tree-node {
+            margin: 2px 0;
+            user-select: none;
+        }
+
+        .node-content {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .node-content:hover {
+            background: #f3f4f6;
+        }
+
+        .node-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .node-toggle:hover {
+            background: #d1d5db;
+        }
+
+        .node-toggle.expanded {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .node-toggle.leaf {
+            background: transparent;
+            cursor: default;
+        }
+
+        .node-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .node-label {
+            font-weight: 500;
+            color: #1f2937;
+            flex: 1;
+        }
+
+        .node-count {
+            background: #e5e7eb;
+            color: #6b7280;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .node-children {
+            margin-left: 28px;
+            border-left: 2px solid #f3f4f6;
+            padding-left: 12px;
+            display: none;
+        }
+
+        .node-children.expanded {
+            display: block;
+        }
+
+        /* 不同层级的样式 */
+        .node-content.page {
+            background: #f9fafb;
+            border: 1px solid #1f2937;
+            font-weight: 700;
+        }
+
+        .node-content.section {
+            background: #fef2f2;
+            border-left: 4px solid #dc2626;
+            font-weight: 600;
+        }
+
+        .node-content.article {
+            background: #fff7ed;
+            border-left: 4px solid #ea580c;
+            font-weight: 600;
+        }
+
+        .node-content.header {
+            background: #fffbeb;
+            border-left: 4px solid #d97706;
+        }
+
+        .node-content.nav {
+            background: #fefce8;
+            border-left: 4px solid #ca8a04;
+        }
+
+        .node-content.main {
+            background: #f7fee7;
+            border-left: 4px solid #65a30d;
+        }
+
+        .node-content.aside {
+            background: #ecfdf5;
+            border-left: 4px solid #059669;
+        }
+
+        .node-content.div {
+            background: #f0f9ff;
+            border-left: 4px solid #0891b2;
+        }
+
+        .node-content.component {
+            background: #eff6ff;
+            border-left: 4px solid #0284c7;
+        }
+
+        /* 原始结构样式 */
+        .node-content.flat {
+            background: #fafafa;
+            border-left: 4px solid #9ca3af;
+            color: #6b7280;
+        }
+
+        .node-content.element {
+            background: #f8fafc;
+            border-left: 3px solid #64748b;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #3b82f6;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #2563eb;
+        }
+
+        .control-btn.secondary {
+            background: #6b7280;
+        }
+
+        .control-btn.secondary:hover {
+            background: #4b5563;
+        }
+
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .test-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #10b981;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .test-btn:hover {
+            background: #059669;
+        }
+
+        .test-btn.active {
+            background: #047857;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .canvas-container {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            height: 300px;
+            margin: 15px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .element {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .element:hover {
+            transform: scale(1.05);
+            z-index: 20;
+        }
+
+        .element-container { background-color: #4299e1; border-color: #3182ce; }
+        .element-text { background-color: #ed8936; border-color: #dd6b20; }
+        .element-button { background-color: #9f7aea; border-color: #805ad5; }
+        .element-image { background-color: #48bb78; border-color: #38a169; }
+        .element-normal { background-color: #38b2ac; border-color: #319795; }
+
+        .group-boundary {
+            position: absolute;
+            border: 3px solid;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .group-boundary.page { border-color: #1f2937; background: rgba(31, 41, 55, 0.1); }
+        .group-boundary.section { border-color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+        .group-boundary.article { border-color: #ea580c; background: rgba(234, 88, 12, 0.1); }
+        .group-boundary.header { border-color: #d97706; background: rgba(217, 119, 6, 0.1); }
+        .group-boundary.nav { border-color: #ca8a04; background: rgba(202, 138, 4, 0.1); }
+        .group-boundary.main { border-color: #65a30d; background: rgba(101, 163, 13, 0.1); }
+        .group-boundary.aside { border-color: #059669; background: rgba(5, 150, 105, 0.1); }
+        .group-boundary.div { border-color: #0891b2; background: rgba(8, 145, 178, 0.1); }
+        .group-boundary.component { border-color: #0284c7; background: rgba(2, 132, 199, 0.1); }
+
+        .group-label {
+            position: absolute;
+            top: -15px;
+            left: 8px;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .group-label.page { background: #1f2937; }
+        .group-label.section { background: #dc2626; }
+        .group-label.article { background: #ea580c; }
+        .group-label.header { background: #d97706; }
+        .group-label.nav { background: #ca8a04; }
+        .group-label.main { background: #65a30d; }
+        .group-label.aside { background: #059669; }
+        .group-label.div { background: #0891b2; }
+        .group-label.component { background: #0284c7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌳 交互式树形结构对比</h1>
+            <p>分组前后的清晰对比，支持展开/收起的交互式树形结构</p>
+        </div>
+
+        <div class="content">
+            <!-- 控制面板 -->
+            <div class="controls">
+                <h3 style="margin-bottom: 15px;">🎛️ 控制面板</h3>
+                
+                <div class="test-buttons">
+                    <button class="test-btn active" data-case="complete_webpage">🌐 完整网页</button>
+                    <button class="test-btn" data-case="dashboard_full">📊 完整仪表板</button>
+                    <button class="test-btn" data-case="ecommerce_page">🛒 电商页面</button>
+                </div>
+
+                <div class="control-buttons">
+                    <button class="control-btn" id="expand-all-btn">📂 全部展开</button>
+                    <button class="control-btn" id="collapse-all-btn">📁 全部收起</button>
+                    <button class="control-btn secondary" id="refresh-btn">🔄 重新分析</button>
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-elements">0</div>
+                    <div class="stat-label">总元素数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="original-depth">0</div>
+                    <div class="stat-label">原始深度</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="grouped-depth">0</div>
+                    <div class="stat-label">分组后深度</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-groups">0</div>
+                    <div class="stat-label">分组总数</div>
+                </div>
+            </div>
+
+            <!-- 可视化对比 -->
+            <div class="comparison-grid">
+                <div class="tree-panel">
+                    <div class="panel-title">📥 原始布局</div>
+                    <div class="canvas-container" id="original-canvas"></div>
+                </div>
+                
+                <div class="tree-panel">
+                    <div class="panel-title">🎯 分组后布局</div>
+                    <div class="canvas-container" id="grouped-canvas"></div>
+                </div>
+            </div>
+
+            <!-- 树形结构对比 -->
+            <div class="comparison-grid">
+                <div class="tree-panel">
+                    <div class="panel-title">🔴 分组前结构 (扁平)</div>
+                    <div class="tree-container" id="original-tree"></div>
+                </div>
+                
+                <div class="tree-panel">
+                    <div class="panel-title">🌳 分组后结构 (层次化)</div>
+                    <div class="tree-container" id="grouped-tree"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试数据
+        const testCases = {
+            complete_webpage: [
+                { id: 'logo', name: 'Logo', x: 20, y: 10, width: 80, height: 40, type: 'image' },
+                { id: 'nav1', name: 'Home', x: 120, y: 15, width: 60, height: 30, type: 'button' },
+                { id: 'nav2', name: 'About', x: 190, y: 15, width: 60, height: 30, type: 'button' },
+                { id: 'nav3', name: 'Contact', x: 260, y: 15, width: 60, height: 30, type: 'button' },
+                { id: 'search', name: 'Search', x: 350, y: 15, width: 120, height: 30, type: 'text' },
+                { id: 'user_menu', name: 'User', x: 490, y: 15, width: 80, height: 30, type: 'button' },
+                
+                { id: 'hero_title', name: 'Hero Title', x: 20, y: 70, width: 550, height: 40, type: 'text' },
+                { id: 'hero_subtitle', name: 'Hero Subtitle', x: 20, y: 120, width: 400, height: 25, type: 'text' },
+                { id: 'hero_cta', name: 'Get Started', x: 20, y: 160, width: 120, height: 35, type: 'button' },
+                { id: 'hero_image', name: 'Hero Image', x: 450, y: 70, width: 120, height: 120, type: 'image' },
+                
+                { id: 'features_title', name: 'Features', x: 20, y: 220, width: 550, height: 30, type: 'text' },
+                { id: 'feature1_icon', name: 'Icon 1', x: 20, y: 270, width: 40, height: 40, type: 'image' },
+                { id: 'feature1_title', name: 'Feature 1', x: 70, y: 270, width: 120, height: 20, type: 'text' },
+                { id: 'feature1_desc', name: 'Desc 1', x: 70, y: 295, width: 120, height: 15, type: 'text' },
+                
+                { id: 'feature2_icon', name: 'Icon 2', x: 210, y: 270, width: 40, height: 40, type: 'image' },
+                { id: 'feature2_title', name: 'Feature 2', x: 260, y: 270, width: 120, height: 20, type: 'text' },
+                { id: 'feature2_desc', name: 'Desc 2', x: 260, y: 295, width: 120, height: 15, type: 'text' },
+                
+                { id: 'feature3_icon', name: 'Icon 3', x: 400, y: 270, width: 40, height: 40, type: 'image' },
+                { id: 'feature3_title', name: 'Feature 3', x: 450, y: 270, width: 120, height: 20, type: 'text' },
+                { id: 'feature3_desc', name: 'Desc 3', x: 450, y: 295, width: 120, height: 15, type: 'text' },
+                
+                { id: 'footer_logo', name: 'Footer Logo', x: 20, y: 350, width: 60, height: 30, type: 'image' },
+                { id: 'footer_links', name: 'Links', x: 100, y: 350, width: 200, height: 30, type: 'text' },
+                { id: 'footer_social', name: 'Social', x: 320, y: 350, width: 100, height: 30, type: 'button' },
+                { id: 'footer_copy', name: 'Copyright', x: 440, y: 350, width: 130, height: 30, type: 'text' },
+            ]
+        };
+
+        let currentCase = 'complete_webpage';
+        let currentElements = [];
+        let groupedHierarchy = null;
