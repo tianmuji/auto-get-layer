@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能分组脚本演示</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .input-section {
+            border-left: 4px solid #007acc;
+            padding-left: 16px;
+        }
+        
+        .output-section {
+            border-left: 4px solid #28a745;
+            padding-left: 16px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: #007acc;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #005a9e;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            resize: vertical;
+        }
+        
+        .result-display {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* 层级可视化样式 */
+        .hierarchy-visualization {
+            background-color: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .tree-node {
+            margin: 5px 0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 3px solid #007acc;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tree-node:hover {
+            background-color: #e9ecef;
+            transform: translateX(2px);
+        }
+
+        .tree-node.level-1 { border-left-color: #007acc; margin-left: 0px; }
+        .tree-node.level-2 { border-left-color: #28a745; margin-left: 20px; }
+        .tree-node.level-3 { border-left-color: #ffc107; margin-left: 40px; }
+        .tree-node.level-4 { border-left-color: #dc3545; margin-left: 60px; }
+        .tree-node.level-5 { border-left-color: #6f42c1; margin-left: 80px; }
+        .tree-node.level-6 { border-left-color: #fd7e14; margin-left: 100px; }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .node-title {
+            font-weight: bold;
+            color: #333;
+            flex: 1;
+        }
+
+        .node-info {
+            font-size: 11px;
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .node-toggle {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: #007acc;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .node-children {
+            margin-top: 8px;
+            border-left: 2px dashed #ddd;
+            padding-left: 15px;
+        }
+
+        .node-children.collapsed {
+            display: none;
+        }
+
+        .node-elements {
+            margin-top: 5px;
+            padding: 5px 10px;
+            background-color: #e3f2fd;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #1976d2;
+        }
+
+        /* JSON弹窗样式 */
+        .json-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .json-modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80%;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .json-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 15px;
+            top: 10px;
+        }
+
+        .json-close:hover {
+            color: #000;
+        }
+
+        .json-content {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            margin-top: 30px;
+        }
+
+        .view-json-btn {
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+
+        .view-json-btn:hover {
+            background-color: #138496;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+            font-size: 14px;
+        }
+
+        .tab.active {
+            background-color: #007acc;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007acc;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .example-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .example-btn {
+            padding: 6px 12px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .example-btn:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 智能分组脚本演示</h1>
+    <p>将无序的设计元素转换为有序的分组结构</p>
+    
+    <div class="container input-section">
+        <h2>📥 输入数据</h2>
+        <div class="example-buttons">
+            <button class="example-btn" onclick="loadExample('simple')">简单卡片</button>
+            <button class="example-btn" onclick="loadExample('complex')">复杂布局</button>
+            <button class="example-btn" onclick="loadExample('dashboard')">仪表板</button>
+            <button class="example-btn" onclick="loadExample('form')">表单布局</button>
+            <button class="example-btn" onclick="testCleanFormat()" style="background-color: #28a745;">🧪 测试简洁格式</button>
+            <button class="example-btn" onclick="clearInput()">清空</button>
+        </div>
+        <textarea id="inputData" placeholder="请输入元素数据（JSON格式）..."></textarea>
+    </div>
+    
+    <div class="container">
+        <h2>⚙️ 配置选项</h2>
+        <div class="controls">
+            <label>
+                输出格式:
+                <select id="outputFormat">
+                    <option value="hierarchy">层次结构</option>
+                    <option value="flat">扁平分组</option>
+                    <option value="tree">树形结构</option>
+                    <option value="clean">简洁格式</option>
+                </select>
+            </label>
+            
+            <label>
+                <input type="checkbox" id="includeDetails" checked> 包含详细信息
+            </label>
+            
+            <label>
+                <input type="checkbox" id="optimizeSingleChild" checked> 优化单子节点
+            </label>
+            
+            <label>
+                <input type="checkbox" id="debug"> 调试模式
+            </label>
+            
+            <button class="btn-primary" onclick="processGrouping()">🚀 执行分组</button>
+            <button class="btn-secondary" onclick="copyResult()">📋 复制结果</button>
+        </div>
+    </div>
+    
+    <div class="container output-section">
+        <h2>📤 分组结果</h2>
+
+        <!-- 标签页 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('hierarchy', this)">🌳 层级可视化</button>
+            <button class="tab" onclick="switchTab('json', this)">📋 JSON数据</button>
+            <button class="tab" onclick="switchTab('statistics', this)">📊 统计信息</button>
+        </div>
+
+        <!-- 层级可视化标签页 -->
+        <div id="hierarchyTab" class="tab-content active">
+            <div id="hierarchyVisualization" class="hierarchy-visualization">
+                <p style="text-align: center; color: #666;">请先输入数据并点击"执行分组"按钮</p>
+            </div>
+        </div>
+
+        <!-- JSON数据标签页 -->
+        <div id="jsonTab" class="tab-content">
+            <div id="jsonContainer" class="result-display">
+                <p>请先执行分组以查看JSON数据</p>
+            </div>
+        </div>
+
+        <!-- 统计信息标签页 -->
+        <div id="statisticsTab" class="tab-content">
+            <div id="statisticsContainer">
+                <p>请先执行分组以查看统计信息</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JSON详情弹窗 -->
+    <div id="jsonModal" class="json-modal">
+        <div class="json-modal-content">
+            <span class="json-close" onclick="closeJsonModal()">&times;</span>
+            <h3 id="jsonModalTitle">JSON详情</h3>
+            <div id="jsonModalContent" class="json-content"></div>
+        </div>
+    </div>
+
+    <!-- 引入依赖 -->
+    <script src="grouping-utils.js"></script>
+    <script src="grouping-script.js"></script>
+    
+    <script>
+        // 示例数据
+        const examples = {
+            simple: [
+                { id: 'title', name: '用户信息', x: 20, y: 20, width: 200, height: 30, type: 'text' },
+                { id: 'avatar', name: '头像', x: 30, y: 60, width: 60, height: 60, type: 'image' },
+                { id: 'username', name: '张三', x: 100, y: 70, width: 100, height: 20, type: 'text' },
+                { id: 'email', name: 'zhang@email.com', x: 100, y: 95, width: 120, height: 15, type: 'text' },
+                { id: 'edit_btn', name: '编辑按钮', x: 180, y: 130, width: 60, height: 25, type: 'button' }
+            ],
+            
+            complex: [
+                { id: 'header', name: '页面标题', x: 0, y: 0, width: 800, height: 60, type: 'text' },
+                { id: 'nav1', name: '首页', x: 20, y: 80, width: 60, height: 30, type: 'button' },
+                { id: 'nav2', name: '产品', x: 90, y: 80, width: 60, height: 30, type: 'button' },
+                { id: 'nav3', name: '关于', x: 160, y: 80, width: 60, height: 30, type: 'button' },
+                { id: 'content1', name: '主要内容', x: 20, y: 130, width: 500, height: 200, type: 'text' },
+                { id: 'sidebar1', name: '侧边栏标题', x: 540, y: 130, width: 200, height: 30, type: 'text' },
+                { id: 'sidebar2', name: '侧边栏内容', x: 540, y: 170, width: 200, height: 160, type: 'text' },
+                { id: 'footer', name: '页脚', x: 0, y: 350, width: 800, height: 40, type: 'text' }
+            ],
+            
+            dashboard: [
+                { id: 'total_users', name: 'Total Users', x: 20, y: 20, width: 180, height: 80, type: 'text' },
+                { id: 'total_orders', name: 'Total Orders', x: 220, y: 20, width: 180, height: 80, type: 'text' },
+                { id: 'revenue', name: 'Revenue', x: 420, y: 20, width: 180, height: 80, type: 'text' },
+                { id: 'chart_title', name: 'Sales Chart', x: 20, y: 120, width: 380, height: 30, type: 'text' },
+                { id: 'chart', name: 'Chart Area', x: 20, y: 160, width: 380, height: 200, type: 'image' },
+                { id: 'recent_title', name: 'Recent Activity', x: 420, y: 120, width: 180, height: 30, type: 'text' },
+                { id: 'activity1', name: 'User login', x: 420, y: 160, width: 180, height: 25, type: 'text' },
+                { id: 'activity2', name: 'New order', x: 420, y: 190, width: 180, height: 25, type: 'text' },
+                { id: 'activity3', name: 'Payment received', x: 420, y: 220, width: 180, height: 25, type: 'text' }
+            ],
+            
+            form: [
+                { id: 'form_title', name: '用户注册', x: 50, y: 20, width: 200, height: 30, type: 'text' },
+                { id: 'name_label', name: '姓名', x: 50, y: 70, width: 60, height: 20, type: 'text' },
+                { id: 'name_input', name: '姓名输入框', x: 120, y: 70, width: 180, height: 30, type: 'input' },
+                { id: 'email_label', name: '邮箱', x: 50, y: 110, width: 60, height: 20, type: 'text' },
+                { id: 'email_input', name: '邮箱输入框', x: 120, y: 110, width: 180, height: 30, type: 'input' },
+                { id: 'password_label', name: '密码', x: 50, y: 150, width: 60, height: 20, type: 'text' },
+                { id: 'password_input', name: '密码输入框', x: 120, y: 150, width: 180, height: 30, type: 'input' },
+                { id: 'submit_btn', name: '提交', x: 120, y: 200, width: 80, height: 35, type: 'button' },
+                { id: 'cancel_btn', name: '取消', x: 220, y: 200, width: 80, height: 35, type: 'button' }
+            ]
+        };
+        
+        // 加载示例数据
+        function loadExample(type) {
+            const data = examples[type];
+            if (data) {
+                document.getElementById('inputData').value = JSON.stringify(data, null, 2);
+            }
+        }
+        
+        // 清空输入
+        function clearInput() {
+            document.getElementById('inputData').value = '';
+            const hierarchyContainer = document.getElementById('hierarchyVisualization');
+            const jsonContainer = document.getElementById('jsonContainer');
+            const statsContainer = document.getElementById('statisticsContainer');
+
+            const defaultMsg = '<p style="text-align: center; color: #666;">请先输入数据并点击"执行分组"按钮</p>';
+            hierarchyContainer.innerHTML = defaultMsg;
+            jsonContainer.innerHTML = '<p>请先执行分组以查看JSON数据</p>';
+            statsContainer.innerHTML = '<p>请先执行分组以查看统计信息</p>';
+        }
+
+        // 测试简洁格式
+        function testCleanFormat() {
+            // 加载简单卡片示例
+            loadExample('simple');
+
+            // 设置为简洁格式
+            document.getElementById('outputFormat').value = 'clean';
+            document.getElementById('includeDetails').checked = false;
+            document.getElementById('debug').checked = false;
+
+            // 延迟执行分组，确保数据已加载
+            setTimeout(() => {
+                processGrouping();
+                // 自动切换到JSON标签页显示结果
+                setTimeout(() => {
+                    switchTab('json', document.querySelector('.tab[onclick*="json"]'));
+                }, 500);
+            }, 100);
+        }
+        
+        // 执行分组处理
+        function processGrouping() {
+            try {
+                const inputText = document.getElementById('inputData').value.trim();
+                if (!inputText) {
+                    showError('请先输入元素数据');
+                    return;
+                }
+
+                // 解析输入数据
+                const elements = JSON.parse(inputText);
+
+                // 获取配置选项
+                const options = {
+                    outputFormat: document.getElementById('outputFormat').value,
+                    includeDetails: document.getElementById('includeDetails').checked,
+                    optimizeSingleChild: document.getElementById('optimizeSingleChild').checked,
+                    debug: document.getElementById('debug').checked
+                };
+
+                console.log('🔧 配置选项:', options);
+                console.log('📊 输入元素:', elements);
+
+                // 执行分组
+                const grouper = new ElementGrouper(options);
+                const result = grouper.group(elements);
+
+                console.log('✅ 分组结果:', result);
+
+                // 显示结果
+                displayResult(result);
+
+            } catch (error) {
+                console.error('❌ 处理错误:', error);
+                showError('处理失败: ' + error.message);
+            }
+        }
+        
+        // 显示结果
+        function displayResult(result) {
+            if (result.success) {
+                // 显示层级可视化
+                displayHierarchyVisualization(result);
+
+                // 显示JSON数据
+                displayJsonData(result);
+
+                // 显示统计信息
+                displayStatistics(result);
+
+                // 默认显示层级可视化标签页
+                switchTab('hierarchy');
+            } else {
+                showError('分组失败: ' + result.error);
+            }
+        }
+
+        // 显示层级可视化
+        function displayHierarchyVisualization(result) {
+            const container = document.getElementById('hierarchyVisualization');
+
+            if (result.format === 'hierarchy' && result.hierarchy) {
+                const hierarchyHtml = renderHierarchyTree(result.hierarchy);
+                container.innerHTML = hierarchyHtml;
+            } else if (result.format === 'tree' && result.tree) {
+                const hierarchyHtml = renderHierarchyTree(result.tree);
+                container.innerHTML = hierarchyHtml;
+            } else if (result.format === 'flat' && result.groups) {
+                const hierarchyHtml = renderFlatGroups(result.groups);
+                container.innerHTML = hierarchyHtml;
+            } else if (result.format === 'clean' && result.result) {
+                const hierarchyHtml = renderCleanResult(result.result);
+                container.innerHTML = hierarchyHtml;
+            } else {
+                container.innerHTML = '<p style="text-align: center; color: #666;">当前输出格式不支持层级可视化</p>';
+            }
+        }
+
+        // 渲染层级树
+        function renderHierarchyTree(node, level = 1) {
+            const nodeId = `node_${Math.random().toString(36).substr(2, 9)}`;
+            const hasChildren = node.children && node.children.length > 0;
+            const hasElements = node.elements && node.elements.length > 0;
+
+            let html = `<div class="tree-node level-${Math.min(level, 6)}" data-level="${level}">`;
+            html += `<div class="node-header">`;
+            html += `<div class="node-title">${escapeHtml(node.name || node.id)}</div>`;
+            html += `<div class="node-info">`;
+            html += `${node.type || 'unknown'} | Level ${level}`;
+            if (node.elementCount !== undefined) {
+                html += ` | ${node.elementCount} 元素`;
+            }
+            if (node.childCount !== undefined) {
+                html += ` | ${node.childCount} 子组`;
+            }
+            html += `</div>`;
+
+            // 查看JSON按钮
+            html += `<button class="view-json-btn" onclick="showJsonModal('${escapeHtml(node.name || node.id)}', '${escapeHtml(JSON.stringify(node))}')">查看JSON</button>`;
+
+            // 折叠/展开按钮
+            if (hasChildren) {
+                html += `<button class="node-toggle" onclick="toggleNode('${nodeId}')" id="toggle_${nodeId}">−</button>`;
+            }
+            html += `</div>`;
+
+            // 显示直接包含的元素
+            if (hasElements && Array.isArray(node.elements)) {
+                const elementNames = node.elements.map(e => typeof e === 'string' ? e : (e.name || e.id || '未知元素'));
+                html += `<div class="node-elements">📄 元素: ${elementNames.join(', ')}</div>`;
+            }
+
+            // 子节点
+            if (hasChildren) {
+                html += `<div class="node-children" id="${nodeId}">`;
+                node.children.forEach(child => {
+                    html += renderHierarchyTree(child, level + 1);
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        // 渲染扁平分组
+        function renderFlatGroups(groups) {
+            let html = '<div style="margin-bottom: 15px;"><strong>扁平分组结构 (共 ' + groups.length + ' 个分组)</strong></div>';
+
+            groups.forEach((group, index) => {
+                html += `<div class="tree-node level-1" data-level="1">`;
+                html += `<div class="node-header">`;
+                html += `<div class="node-title">组 ${index + 1}: ${escapeHtml(group.name)}</div>`;
+                html += `<div class="node-info">${group.type} | ${group.elements.length} 元素</div>`;
+                html += `<button class="view-json-btn" onclick="showJsonModal('组 ${index + 1}', '${escapeHtml(JSON.stringify(group))}')">查看JSON</button>`;
+                html += `</div>`;
+
+                if (group.elements && group.elements.length > 0) {
+                    const elementNames = group.elements.map(e => e.name || e.id || '未知元素');
+                    html += `<div class="node-elements">📄 元素: ${elementNames.join(', ')}</div>`;
+                }
+
+                html += `</div>`;
+            });
+
+            return html;
+        }
+
+        // 渲染简洁结果
+        function renderCleanResult(cleanResult) {
+            let html = '<div style="margin-bottom: 20px;"><strong>简洁格式结果 - 完整父子关系</strong></div>';
+
+            if (!cleanResult.nodes || cleanResult.nodes.length === 0) {
+                return html + '<p>没有节点数据</p>';
+            }
+
+            // 按层级和类型组织节点
+            const groupNodes = cleanResult.nodes.filter(node => node.nodeType === 'group');
+            const elementNodes = cleanResult.nodes.filter(node => node.nodeType === 'element');
+
+            html += '<div style="margin-bottom: 15px;"><h4>🌳 完整节点层级 (共 ' + cleanResult.nodes.length + ' 个节点)</h4></div>';
+
+            // 构建层级树显示
+            html += renderNodeHierarchy(cleanResult.nodes);
+
+            // 显示数据摘要
+            html += '<div style="margin-top: 20px; padding: 15px; background-color: #e8f5e8; border-radius: 4px;">';
+            html += '<h4>📊 数据摘要</h4>';
+            html += `<p><strong>总节点数:</strong> ${cleanResult.nodes.length}</p>`;
+            html += `<p><strong>分组节点:</strong> ${groupNodes.length}</p>`;
+            html += `<p><strong>元素节点:</strong> ${elementNodes.length}</p>`;
+            html += `<p><strong>数据特点:</strong> 包含所有节点的完整父子关系，每个节点只保留必要信息</p>`;
+            html += '</div>';
+
+            return html;
+        }
+
+        // 渲染节点层级结构
+        function renderNodeHierarchy(nodes) {
+            // 构建父子关系映射
+            const nodeMap = new Map();
+            const childrenMap = new Map();
+
+            nodes.forEach(node => {
+                nodeMap.set(node.id, node);
+                if (!childrenMap.has(node.parent)) {
+                    childrenMap.set(node.parent, []);
+                }
+                childrenMap.get(node.parent).push(node);
+            });
+
+            // 找到根节点
+            const rootNodes = childrenMap.get(null) || [];
+
+            let html = '';
+            rootNodes.forEach(rootNode => {
+                html += renderNodeRecursive(rootNode, childrenMap, 1);
+            });
+
+            return html;
+        }
+
+        // 递归渲染节点
+        function renderNodeRecursive(node, childrenMap, level) {
+            const children = childrenMap.get(node.id) || [];
+            const hasChildren = children.length > 0;
+            const nodeId = `node_${node.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+            let html = `<div class="tree-node level-${Math.min(level, 6)}" data-level="${level}">`;
+            html += `<div class="node-header">`;
+
+            // 节点标题和信息
+            if (node.nodeType === 'group') {
+                html += `<div class="node-title">📁 ${escapeHtml(node.name || node.id)}</div>`;
+                html += `<div class="node-info">分组 | ${node.type} | Level ${node.level}`;
+            } else {
+                html += `<div class="node-title">📄 ${escapeHtml(node.name || node.id)}</div>`;
+                html += `<div class="node-info">元素 | ${node.type}`;
+                if (node.x !== undefined) {
+                    html += ` | ${node.x},${node.y} (${node.width}×${node.height})`;
+                }
+            }
+
+            if (node.parent) {
+                html += ` | Parent: ${node.parent}`;
+            }
+            html += `</div>`;
+
+            // 查看JSON按钮
+            html += `<button class="view-json-btn" onclick="showJsonModal('${node.nodeType === 'group' ? '分组' : '元素'} ${node.id}', '${escapeHtml(JSON.stringify(node))}')">查看JSON</button>`;
+
+            // 折叠/展开按钮
+            if (hasChildren) {
+                html += `<button class="node-toggle" onclick="toggleNode('${nodeId}')" id="toggle_${nodeId}">−</button>`;
+            }
+
+            html += `</div>`;
+
+            // 子节点
+            if (hasChildren) {
+                html += `<div class="node-children" id="${nodeId}">`;
+                children.forEach(child => {
+                    html += renderNodeRecursive(child, childrenMap, level + 1);
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        // 显示JSON数据
+        function displayJsonData(result) {
+            const container = document.getElementById('jsonContainer');
+            let html = '<div class="success">✅ 分组处理成功</div>';
+
+            if (result.format === 'clean' && result.result) {
+                // 简洁格式：突出显示简洁结果
+                html += '<div style="margin: 15px 0;"><h4>🎯 简洁格式结果 (result字段)</h4></div>';
+                html += '<div class="result-display">' + JSON.stringify(result.result, null, 2) + '</div>';
+
+                html += '<div style="margin: 15px 0;"><h4>📊 完整响应数据</h4></div>';
+                html += '<div class="result-display" style="max-height: 200px; overflow-y: auto;">' + JSON.stringify(result, null, 2) + '</div>';
+            } else {
+                // 其他格式：显示完整结果
+                html += '<div class="result-display">' + JSON.stringify(result, null, 2) + '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 显示统计信息
+        function displayStatistics(result) {
+            const container = document.getElementById('statisticsContainer');
+
+            let html = '<div class="success">✅ 分组处理成功</div>';
+
+            if (result.statistics) {
+                html += '<div class="stats">';
+                html += `<div class="stat-item"><div class="stat-value">${result.statistics.totalGroups}</div><div class="stat-label">总分组数</div></div>`;
+                html += `<div class="stat-item"><div class="stat-value">${result.statistics.maxDepth}</div><div class="stat-label">最大深度</div></div>`;
+                html += `<div class="stat-item"><div class="stat-value">${result.statistics.totalElements}</div><div class="stat-label">元素总数</div></div>`;
+                html += `<div class="stat-item"><div class="stat-value">${result.statistics.averageGroupSize.toFixed(1)}</div><div class="stat-label">平均分组大小</div></div>`;
+                html += `<div class="stat-item"><div class="stat-value">${(result.statistics.groupingEfficiency * 100).toFixed(1)}%</div><div class="stat-label">分组效率</div></div>`;
+                html += '</div>';
+            }
+
+            // 添加处理信息
+            html += '<div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 4px;">';
+            html += `<h4>处理信息</h4>`;
+            html += `<p><strong>输入元素数量:</strong> ${result.inputCount}</p>`;
+            html += `<p><strong>输出格式:</strong> ${result.format}</p>`;
+            html += `<p><strong>处理时间:</strong> ${new Date(result.timestamp).toLocaleString()}</p>`;
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+        
+        // 显示错误
+        function showError(message) {
+            const hierarchyContainer = document.getElementById('hierarchyVisualization');
+            const jsonContainer = document.getElementById('jsonContainer');
+            const statsContainer = document.getElementById('statisticsContainer');
+
+            const errorHtml = `<div class="error">❌ ${message}</div>`;
+            hierarchyContainer.innerHTML = errorHtml;
+            jsonContainer.innerHTML = errorHtml;
+            statsContainer.innerHTML = errorHtml;
+        }
+
+        // 标签页切换
+        function switchTab(tabName, clickedElement) {
+            // 隐藏所有标签页内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 移除所有标签的active类
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // 显示选中的标签页
+            const targetTab = document.getElementById(tabName + 'Tab');
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+
+            // 激活对应的标签按钮
+            if (clickedElement) {
+                clickedElement.classList.add('active');
+            } else {
+                // 如果没有传入元素，通过tabName查找
+                const tabButtons = document.querySelectorAll('.tab');
+                tabButtons.forEach(button => {
+                    if (button.onclick && button.onclick.toString().includes(tabName)) {
+                        button.classList.add('active');
+                    }
+                });
+            }
+        }
+
+        // 切换节点展开/折叠
+        function toggleNode(nodeId) {
+            const nodeChildren = document.getElementById(nodeId);
+            const toggleButton = document.getElementById('toggle_' + nodeId);
+
+            if (nodeChildren && toggleButton) {
+                if (nodeChildren.classList.contains('collapsed')) {
+                    nodeChildren.classList.remove('collapsed');
+                    toggleButton.textContent = '−';
+                } else {
+                    nodeChildren.classList.add('collapsed');
+                    toggleButton.textContent = '+';
+                }
+            }
+        }
+
+        // 显示JSON弹窗
+        function showJsonModal(title, jsonData) {
+            const modal = document.getElementById('jsonModal');
+            const modalTitle = document.getElementById('jsonModalTitle');
+            const modalContent = document.getElementById('jsonModalContent');
+
+            modalTitle.textContent = `${title} - JSON详情`;
+
+            // 如果jsonData是字符串，需要解析
+            let data;
+            try {
+                data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+            } catch (e) {
+                data = jsonData;
+            }
+
+            modalContent.textContent = JSON.stringify(data, null, 2);
+            modal.style.display = 'block';
+        }
+
+        // 关闭JSON弹窗
+        function closeJsonModal() {
+            const modal = document.getElementById('jsonModal');
+            modal.style.display = 'none';
+        }
+
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('jsonModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // HTML转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 复制结果
+        function copyResult() {
+            // 获取当前活跃的标签页
+            const activeTab = document.querySelector('.tab-content.active');
+            let textToCopy = '';
+
+            if (activeTab) {
+                if (activeTab.id === 'jsonTab') {
+                    const jsonContainer = activeTab.querySelector('.result-display');
+                    if (jsonContainer) {
+                        textToCopy = jsonContainer.textContent;
+                    }
+                } else if (activeTab.id === 'hierarchyTab') {
+                    // 对于层级可视化，复制一个简化的文本表示
+                    textToCopy = generateHierarchyText();
+                } else if (activeTab.id === 'statisticsTab') {
+                    const statsContainer = activeTab;
+                    if (statsContainer) {
+                        textToCopy = statsContainer.textContent;
+                    }
+                }
+            }
+
+            if (textToCopy) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    alert('结果已复制到剪贴板');
+                }).catch(() => {
+                    // 降级方案
+                    const textArea = document.createElement('textarea');
+                    textArea.value = textToCopy;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('结果已复制到剪贴板');
+                });
+            } else {
+                alert('没有可复制的结果');
+            }
+        }
+
+        // 生成层级结构的文本表示
+        function generateHierarchyText() {
+            const treeNodes = document.querySelectorAll('#hierarchyVisualization .tree-node');
+            let text = '分组层级结构:\n\n';
+
+            treeNodes.forEach(node => {
+                const level = parseInt(node.dataset.level) || 1;
+                const indent = '  '.repeat(level - 1);
+                const title = node.querySelector('.node-title')?.textContent || '';
+                const info = node.querySelector('.node-info')?.textContent || '';
+                const elements = node.querySelector('.node-elements')?.textContent || '';
+
+                text += `${indent}${title} (${info})\n`;
+                if (elements) {
+                    text += `${indent}  ${elements}\n`;
+                }
+            });
+
+            return text;
+        }
+        
+        // 页面加载时加载默认示例
+        window.onload = function() {
+            loadExample('simple');
+        };
+    </script>
+</body>
+</html>

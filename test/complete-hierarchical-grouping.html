@@ -531,6 +531,7 @@
                     <button class="test-btn" data-case="form_example">📝 表单示例</button>
                     <button class="test-btn" data-case="navigation_bar">🧭 导航栏</button>
                     <button class="test-btn" data-case="dashboard_simple">📊 简单仪表板</button>
+                    <button class="test-btn" data-case="figma_cs_enterprise">🎨 Figma实际案例</button>
                 </div>
 
                 <!-- 校验按钮 -->
@@ -613,6 +614,7 @@
         </div>
     </div>
 
+    <script src="grouping-utils.js"></script>
     <script>
         // 测试数据集 - 从简单到复杂的渐进式例子
         const testCases = {
@@ -712,2525 +714,291 @@
                 { id: 'activity1', name: '新用户注册', x: 450, y: 105, width: 150, height: 20, type: 'text' },
                 { id: 'activity2', name: '订单完成', x: 450, y: 130, width: 150, height: 20, type: 'text' },
                 { id: 'activity3', name: '支付成功', x: 450, y: 155, width: 150, height: 20, type: 'text' }
-            ]
+            ],
+
+            // 6. 🎨 Figma实际案例 - CS企业版界面
+            figma_cs_enterprise: []
         };
 
         // 全局变量
         let currentCase = 'simple_card';
         let currentGroups = [];
 
-        // Web标准层次定义
-        const WEB_HIERARCHY = [
-            { name: 'page', label: 'Page', minSize: 0, priority: 1 },
-            { name: 'section', label: 'Section', minSize: 100, priority: 2 },
-            { name: 'article', label: 'Article', minSize: 80, priority: 3 },
-            { name: 'header', label: 'Header', minSize: 60, priority: 4 },
-            { name: 'nav', label: 'Nav', minSize: 40, priority: 5 },
-            { name: 'main', label: 'Main', minSize: 60, priority: 6 },
-            { name: 'aside', label: 'Aside', minSize: 40, priority: 7 },
-            { name: 'div', label: 'Div', minSize: 30, priority: 8 },
-            { name: 'component', label: 'Component', minSize: 20, priority: 9 }
-        ];
+        // 🎨 Figma数据转换函数
+        function convertFigmaToElements(figmaData) {
+            console.log('🎨 开始转换Figma数据...');
+            const elements = [];
 
-        // 完整层次化分组算法
-        function performCompleteHierarchicalGrouping(elements) {
-            console.log('🌐 开始完整层次化分组分析...');
+            function extractElements(node, parentBounds = null, depth = 0) {
+                console.log(`${'  '.repeat(depth)}🔍 处理节点: ${node.name} (${node.type})`);
 
-            // 1. 创建页面级分组（包含所有元素）
-            const pageGroup = createPageGroup(elements);
-
-            // 2. 递归创建子分组
-            const completeHierarchy = buildCompleteHierarchy(pageGroup);
-
-            console.log('🎯 完整分组完成');
-            return completeHierarchy;
-        }
-
-        // 创建页面级分组
-        function createPageGroup(elements) {
-            const bounds = calculateBounds(elements);
-            return {
-                id: 'page_root',
-                name: generateMeaningfulGroupName(elements, 'Page'),
-                type: 'page',
-                level: 1,
-                elements: elements,
-                bounds: bounds,
-                children: []
-            };
-        }
-
-        // 构建完整层次结构
-        function buildCompleteHierarchy(parentGroup) {
-            const { elements, level } = parentGroup;
-
-            if (elements.length <= 1 || level >= WEB_HIERARCHY.length) {
-                return parentGroup;
-            }
-
-            // 根据当前层级选择分组策略
-            const currentHierarchy = WEB_HIERARCHY[level - 1];
-            const nextHierarchy = WEB_HIERARCHY[level];
-
-            // 执行无阈值分组
-            const subGroups = createSubGroups(elements, nextHierarchy, level + 1);
-
-            // 递归处理每个子分组
-            parentGroup.children = subGroups.map(group => buildCompleteHierarchy(group));
-
-            // 🔧 优化：合并只有一个子节点的分组，减少树的深度
-            parentGroup = optimizeSingleChildGroups(parentGroup);
-
-            return parentGroup;
-        }
-
-        // 🔧 优化单子节点分组：合并只有一个子节点的分组，减少不必要的树深度
-        function optimizeSingleChildGroups(group) {
-            if (!group.children || group.children.length === 0) {
-                return group;
-            }
-
-            // 递归优化所有子分组
-            group.children = group.children.map(child => optimizeSingleChildGroups(child));
-
-            // 如果当前分组只有一个子分组，且子分组不是叶子节点，则考虑合并
-            if (group.children.length === 1) {
-                const onlyChild = group.children[0];
-
-                // 合并条件：
-                // 1. 子分组也有子节点（不是叶子节点）
-                // 2. 或者子分组只包含一个元素（过度分组）
-                if (onlyChild.children.length > 0 || onlyChild.elements.length === 1) {
-                    console.log(`🔧 合并单子节点分组: ${group.name} -> ${onlyChild.name}`);
-
-                    // 保留父分组的基本信息，但使用子分组的内容
-                    return {
-                        id: group.id,
-                        name: group.name, // 保留父分组的名称
-                        type: group.type, // 保留父分组的类型
-                        level: group.level,
-                        elements: onlyChild.elements,
-                        bounds: onlyChild.bounds,
-                        children: onlyChild.children,
-                        direction: onlyChild.direction
-                    };
-                }
-            }
-
-            return group;
-        }
-
-
-
-        // 🎯 生成基于原始节点名称的分组名称
-        function generateMeaningfulGroupName(elements, fallbackName) {
-            if (!elements || elements.length === 0) {
-                return fallbackName;
-            }
-
-            // 如果只有一个元素，直接使用元素名称
-            if (elements.length === 1) {
-                return elements[0].name;
-            }
-
-            // 如果有多个元素，列出所有元素名称
-            const elementNames = elements.map(e => e.name);
-
-            // 如果元素不多，直接列出所有名称
-            if (elements.length <= 3) {
-                return elementNames.join(' + ');
-            }
-
-            // 如果元素较多，显示前几个加省略号
-            return `${elementNames.slice(0, 2).join(' + ')} + ${elements.length - 2} 项`;
-        }
-
-        // 创建子分组
-        function createSubGroups(elements, hierarchy, level) {
-            console.log(`\n🔧 createSubGroups 被调用，层级: ${level}, 元素数量: ${elements.length}`);
-            console.log(`输入元素: ${elements.map(e => e.name).join(', ')}`);
-
-            if (elements.length <= 1) {
-                console.log(`元素数量 <= 1，返回空数组`);
-                return [];
-            }
-
-            // 1. 使用无阈值的空间聚类
-            const clusters = performSpatialClustering(elements);
-            console.log(`聚类结果: ${clusters.length} 个聚类`);
-            clusters.forEach((cluster, i) => {
-                console.log(`  聚类 ${i + 1}: [${cluster.map(e => e.name).join(', ')}]`);
-            });
-
-            // 2. 为每个聚类创建分组
-            const groups = [];
-            clusters.forEach((cluster, index) => {
-                if (cluster.length >= 1) { // 确保所有元素都被分组
-                    const bounds = calculateBounds(cluster);
-                    const groupInfo = determineGroupType(cluster, hierarchy);
-
-                    const group = {
-                        id: `${hierarchy.name}_${level}_${index}`,
-                        name: generateMeaningfulGroupName(cluster, `${hierarchy.label} ${index + 1}`),
-                        type: groupInfo.type || hierarchy.name,
-                        level: level,
-                        elements: cluster,
-                        bounds: bounds,
-                        children: [],
-                        direction: groupInfo.direction || 'HORIZONTAL' // 默认横向
+                // 如果节点有边界框，将其作为元素添加
+                if (node.boundingBox && node.boundingBox.width > 5 && node.boundingBox.height > 5) {
+                    const element = {
+                        id: node.id,
+                        name: node.name || 'Unnamed',
+                        x: Math.round(node.boundingBox.x),
+                        y: Math.round(node.boundingBox.y),
+                        width: Math.round(node.boundingBox.width),
+                        height: Math.round(node.boundingBox.height),
+                        type: determineFigmaElementType(node),
+                        figmaType: node.type
                     };
 
-                    groups.push(group);
+                    elements.push(element);
+                    console.log(`${'  '.repeat(depth)}📦 提取元素: ${element.name} (${element.x},${element.y},${element.width}×${element.height}) [${element.type}]`);
                 }
-            });
 
-            // 3. 如果没有形成有效分组，创建单个包含所有元素的分组
-            if (groups.length === 0 && elements.length > 0) {
-                const bounds = calculateBounds(elements);
-                const groupInfo = determineGroupType(elements, hierarchy);
-                groups.push({
-                    id: `${hierarchy.name}_${level}_0`,
-                    name: generateMeaningfulGroupName(elements, `${hierarchy.label} 1`),
-                    type: groupInfo.type || hierarchy.name,
-                    level: level,
-                    elements: elements,
-                    bounds: bounds,
-                    children: [],
-                    direction: groupInfo.direction || 'HORIZONTAL' // 默认横向
-                });
-            }
-
-            return groups;
-        }
-
-        // 🎯 Flex布局导向的空间聚类算法 - 优先横向分组
-        function performSpatialClustering(elements) {
-            if (elements.length <= 1) return [elements];
-
-            console.log(`🔄 开始无阈值空间分组`);
-
-            // 使用无阈值的相对关系分组
-            return performFlexLayoutGrouping(elements);
-        }
-
-        // 🎯 基于相对关系的无阈值分组算法
-        function performFlexLayoutGrouping(elements) {
-            console.log(`🚀 开始无阈值分组，元素数量: ${elements.length}`);
-            console.log(`💡 不再依赖固定阈值，使用相对空间关系进行分组`);
-
-            if (elements.length <= 1) {
-                return [elements];
-            }
-
-            // 🎯 使用相对关系进行分组
-            return performRelativeGrouping(elements);
-        }
-
-        // 🎯 重新设计的严格分组算法
-        function performRelativeGrouping(elements) {
-            console.log(`\n📝 === 严格间隙分组算法 ===`);
-
-            // 使用基于间隙的严格分组
-            const groups = performColumnTruncationGrouping(elements);
-
-            console.log(`\n✅ 分组完成，生成 ${groups.length} 个分组`);
-            return groups;
-        }
-
-        function performColumnTruncationGrouping(elements) {
-            console.log(`\n🔍 开始射线分组算法`);
-            console.log(`输入元素: ${elements.map(e => e.name).join(', ')}`);
-
-            const rayGraph = buildRayRelationGraph(elements);
-            const groups = dynamicProgrammingGrouping(elements, rayGraph);
-
-            console.log(`\n📊 最终分组结果:`);
-            groups.forEach((group, index) => {
-                console.log(`  组 ${index + 1}: [${group.map(e => e.name).join(', ')}]`);
-            });
-
-            return groups;
-        }
-
-        function buildRayRelationGraph(elements) {
-            const graph = {
-                horizontal: new Map(),
-                vertical: new Map(),
-                elements: new Map()
-            };
-
-            elements.forEach(element => {
-                graph.horizontal.set(element.id, new Set());
-                graph.vertical.set(element.id, new Set());
-                graph.elements.set(element.id, element);
-            });
-
-            for (let i = 0; i < elements.length; i++) {
-                for (let j = i + 1; j < elements.length; j++) {
-                    const elem1 = elements[i];
-                    const elem2 = elements[j];
-
-                    if (canConnectHorizontally(elem1, elem2, elements)) {
-                        graph.horizontal.get(elem1.id).add(elem2.id);
-                        graph.horizontal.get(elem2.id).add(elem1.id);
-                    }
-
-                    if (canConnectVertically(elem1, elem2, elements)) {
-                        graph.vertical.get(elem1.id).add(elem2.id);
-                        graph.vertical.get(elem2.id).add(elem1.id);
-                    }
+                // 递归处理子节点
+                if (node.children && node.children.length > 0) {
+                    node.children.forEach(child => extractElements(child, node.boundingBox, depth + 1));
                 }
             }
 
-            return graph;
-        }
-
-        function canConnectHorizontally(elem1, elem2, allElements) {
-            const yOverlap = !(elem1.y + elem1.height <= elem2.y || elem2.y + elem2.height <= elem1.y);
-            return yOverlap && !isHorizontalRayBlocked(elem1, elem2, allElements);
-        }
-
-        function canConnectVertically(elem1, elem2, allElements) {
-            const xOverlap = !(elem1.x + elem1.width <= elem2.x || elem2.x + elem2.width <= elem1.x);
-            return xOverlap && !isVerticalRayBlocked(elem1, elem2, allElements);
-        }
-
-        function dynamicProgrammingGrouping(elements, rayGraph) {
-            const validGroupings = findAllValidGroupings(elements, rayGraph);
-
-            if (validGroupings.length === 0) {
-                console.log(`⚠️ 没有找到有效分组方案，使用单元素分组`);
-                return elements.map(e => [e]);
+            // 从nodes数组中提取元素
+            if (figmaData.nodes && figmaData.nodes.length > 0) {
+                figmaData.nodes.forEach(node => extractElements(node, null, 0));
             }
 
-            console.log(`\n🎯 评估 ${validGroupings.length} 种分组方案:`);
-
-            let bestSolution = null;
-            let bestScore = Infinity;
-
-            validGroupings.forEach((grouping, index) => {
-                const score = calculateGroupingScore(grouping);
-                console.log(`  方案 ${index + 1}: ${grouping.length} 组, 得分: ${score.total}`);
-                grouping.forEach((group, groupIndex) => {
-                    console.log(`    组 ${groupIndex + 1}: [${group.map(e => e.name).join(', ')}]`);
-                });
-
-                if (score.total < bestScore) {
-                    bestScore = score.total;
-                    bestSolution = grouping;
-                    console.log(`    ✅ 当前最佳方案!`);
-                }
-            });
-
-            console.log(`\n🏆 选择方案，得分: ${bestScore}`);
-            return bestSolution;
+            console.log(`✅ 转换完成，共提取 ${elements.length} 个元素`);
+            return elements;
         }
 
-        function findAllValidGroupings(elements, rayGraph) {
-            const connectedComponents = findAllConnectedComponents(elements, rayGraph);
-            const allGroupings = [];
+        function determineFigmaElementType(node) {
+            const nodeType = node.type?.toLowerCase() || '';
+            const nodeName = node.name?.toLowerCase() || '';
 
-            if (connectedComponents.length === 1 && connectedComponents[0].length > 1) {
-                const component = connectedComponents[0];
-                const subGroupings = findValidSubGroupings(component, rayGraph);
-                allGroupings.push(...subGroupings);
-            } else {
-                const componentGroupings = connectedComponents.map(component => {
-                    if (component.length === 1) {
-                        return [[component]];
-                    } else {
-                        return findValidSubGroupings(component, rayGraph);
-                    }
-                });
+            // 根据Figma节点类型判断
+            if (nodeType.includes('text')) return 'text';
+            if (nodeType.includes('image') || nodeType.includes('svg')) return 'image';
+            if (nodeType.includes('frame') || nodeType.includes('group')) return 'container';
+            if (nodeType.includes('instance') || nodeType.includes('component')) return 'button';
+            if (nodeType.includes('rectangle') || nodeType.includes('ellipse')) return 'container';
 
-                allGroupings.push(...combineComponentGroupings(componentGroupings));
-            }
+            // 根据节点名称判断
+            if (nodeName.includes('button') || nodeName.includes('btn')) return 'button';
+            if (nodeName.includes('text') || nodeName.includes('label')) return 'text';
+            if (nodeName.includes('image') || nodeName.includes('icon') || nodeName.includes('logo')) return 'image';
 
-            return allGroupings;
+            return 'normal';
         }
 
-        function findAllConnectedComponents(elements, rayGraph) {
-            const basicComponents = findBasicConnectedComponents(elements, rayGraph);
-            console.log(`\n📦 基础连通分量:`);
-            basicComponents.forEach((component, index) => {
-                console.log(`  分量 ${index + 1}: [${component.map(e => e.name).join(', ')}]`);
-            });
-
-            const continuousComponents = mergeContinuousComponents(basicComponents, rayGraph);
-            if (continuousComponents.length !== basicComponents.length) {
-                console.log(`\n🔗 连续性合并后:`);
-                continuousComponents.forEach((component, index) => {
-                    console.log(`  分量 ${index + 1}: [${component.map(e => e.name).join(', ')}]`);
-                });
-            }
-
-            return continuousComponents;
-        }
-
-        function findBasicConnectedComponents(elements, rayGraph) {
-            const components = [];
-            const visited = new Set();
-
-            for (const element of elements) {
-                if (visited.has(element.id)) continue;
-
-                const component = [];
-                const queue = [element];
-                const componentVisited = new Set([element.id]);
-
-                while (queue.length > 0) {
-                    const current = queue.shift();
-                    component.push(current);
-                    visited.add(current.id);
-
-                    const allConnections = new Set([
-                        ...(rayGraph.horizontal.get(current.id) || []),
-                        ...(rayGraph.vertical.get(current.id) || [])
-                    ]);
-
-                    for (const connectedId of allConnections) {
-                        if (!componentVisited.has(connectedId)) {
-                            const connectedElement = rayGraph.elements.get(connectedId);
-                            if (connectedElement) {
-                                queue.push(connectedElement);
-                                componentVisited.add(connectedId);
-                            }
+        // 🎨 Figma原始数据
+        const figmaRawData = {
+            "metadata": {
+                "name": "CS企业版 (Copy)",
+                "lastModified": "2025-07-04T15:39:12Z"
+            },
+            "nodes": [
+                {
+                    "id": "16237:70560",
+                    "name": "Frame 427319817",
+                    "type": "FRAME",
+                    "children": [
+                        {
+                            "id": "16237:70561",
+                            "name": "邀请成员按钮",
+                            "type": "FRAME",
+                            "boundingBox": {
+                                "x": 10,
+                                "y": 10,
+                                "width": 100,
+                                "height": 40
+                            },
+                            "children": [
+                                {
+                                    "id": "16237:70562",
+                                    "name": "Frame 8",
+                                    "type": "FRAME",
+                                    "boundingBox": {
+                                        "x": 15,
+                                        "y": 15,
+                                        "width": 90,
+                                        "height": 30
+                                    },
+                                    "children": [
+                                        {
+                                            "id": "16237:70563",
+                                            "name": "邀请图标",
+                                            "type": "INSTANCE",
+                                            "boundingBox": {
+                                                "x": 20,
+                                                "y": 20,
+                                                "width": 16,
+                                                "height": 16
+                                            }
+                                        },
+                                        {
+                                            "id": "16237:70564",
+                                            "name": "邀请成员",
+                                            "type": "TEXT",
+                                            "boundingBox": {
+                                                "x": 40,
+                                                "y": 22,
+                                                "width": 60,
+                                                "height": 16
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "id": "16237:70565",
+                            "name": "批导入按钮",
+                            "type": "FRAME",
+                            "boundingBox": {
+                                "x": 120,
+                                "y": 10,
+                                "width": 120,
+                                "height": 40
+                            },
+                            "children": [
+                                {
+                                    "id": "16237:70566",
+                                    "name": "Frame 8",
+                                    "type": "FRAME",
+                                    "boundingBox": {
+                                        "x": 125,
+                                        "y": 15,
+                                        "width": 110,
+                                        "height": 30
+                                    },
+                                    "children": [
+                                        {
+                                            "id": "16237:70567",
+                                            "name": "导入图标",
+                                            "type": "INSTANCE",
+                                            "boundingBox": {
+                                                "x": 130,
+                                                "y": 20,
+                                                "width": 16,
+                                                "height": 16
+                                            }
+                                        },
+                                        {
+                                            "id": "16237:70568",
+                                            "name": "批导入成员",
+                                            "type": "TEXT",
+                                            "boundingBox": {
+                                                "x": 150,
+                                                "y": 22,
+                                                "width": 80,
+                                                "height": 16
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "id": "16237:70569",
+                            "name": "导出按钮",
+                            "type": "FRAME",
+                            "boundingBox": {
+                                "x": 250,
+                                "y": 10,
+                                "width": 140,
+                                "height": 40
+                            },
+                            "children": [
+                                {
+                                    "id": "16237:70570",
+                                    "name": "Frame 8",
+                                    "type": "FRAME",
+                                    "boundingBox": {
+                                        "x": 255,
+                                        "y": 15,
+                                        "width": 130,
+                                        "height": 30
+                                    },
+                                    "children": [
+                                        {
+                                            "id": "16237:70571",
+                                            "name": "导出图标",
+                                            "type": "INSTANCE",
+                                            "boundingBox": {
+                                                "x": 260,
+                                                "y": 20,
+                                                "width": 16,
+                                                "height": 16
+                                            }
+                                        },
+                                        {
+                                            "id": "16237:70572",
+                                            "name": "导出成员列表",
+                                            "type": "TEXT",
+                                            "boundingBox": {
+                                                "x": 280,
+                                                "y": 22,
+                                                "width": 100,
+                                                "height": 16
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "id": "16237:70573",
+                            "name": "提醒按钮",
+                            "type": "FRAME",
+                            "boundingBox": {
+                                "x": 400,
+                                "y": 10,
+                                "width": 120,
+                                "height": 40
+                            },
+                            "children": [
+                                {
+                                    "id": "16237:70574",
+                                    "name": "Frame 8",
+                                    "type": "FRAME",
+                                    "boundingBox": {
+                                        "x": 405,
+                                        "y": 15,
+                                        "width": 110,
+                                        "height": 30
+                                    },
+                                    "children": [
+                                        {
+                                            "id": "16237:70575",
+                                            "name": "提醒图标",
+                                            "type": "INSTANCE",
+                                            "boundingBox": {
+                                                "x": 410,
+                                                "y": 20,
+                                                "width": 16,
+                                                "height": 16
+                                            }
+                                        },
+                                        {
+                                            "id": "16237:70576",
+                                            "name": "批量提醒",
+                                            "type": "TEXT",
+                                            "boundingBox": {
+                                                "x": 430,
+                                                "y": 22,
+                                                "width": 80,
+                                                "height": 16
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                    }
+                    ]
                 }
+            ]
+        };
 
-                components.push(component);
-            }
 
-            return components;
-        }
 
-        function mergeContinuousComponents(components, rayGraph) {
-            if (components.length <= 1) return components;
 
-            const continuousGroups = [];
-            const processed = new Set();
 
-            for (let i = 0; i < components.length; i++) {
-                if (processed.has(i)) continue;
 
-                const continuousGroup = [components[i]];
-                processed.add(i);
 
-                for (let j = i + 1; j < components.length; j++) {
-                    if (processed.has(j)) continue;
 
-                    if (areComponentsContinuous(components[i], components[j])) {
-                        continuousGroup.push(components[j]);
-                        processed.add(j);
-                    }
-                }
-
-                if (continuousGroup.length > 1) {
-                    const mergedComponent = continuousGroup.flat();
-                    continuousGroups.push(mergedComponent);
-                } else {
-                    continuousGroups.push(components[i]);
-                }
-            }
-
-            return continuousGroups;
-        }
-
-        function areComponentsContinuous(component1, component2) {
-            const bounds1 = calculateGroupBounds(component1);
-            const bounds2 = calculateGroupBounds(component2);
-
-            const sameRow = Math.abs(bounds1.y - bounds2.y) <= Math.max(bounds1.height, bounds2.height) * 0.5;
-            const sameColumn = Math.abs(bounds1.x - bounds2.x) <= Math.max(bounds1.width, bounds2.width) * 0.5;
-
-            if (sameRow) {
-                const horizontalGap = Math.min(
-                    Math.abs(bounds1.x + bounds1.width - bounds2.x),
-                    Math.abs(bounds2.x + bounds2.width - bounds1.x)
-                );
-                const avgWidth = (bounds1.width + bounds2.width) / 2;
-                return horizontalGap <= avgWidth * 0.8;
-            }
-
-            if (sameColumn) {
-                const verticalGap = Math.min(
-                    Math.abs(bounds1.y + bounds1.height - bounds2.y),
-                    Math.abs(bounds2.y + bounds2.height - bounds1.y)
-                );
-                const avgHeight = (bounds1.height + bounds2.height) / 2;
-                return verticalGap <= avgHeight * 0.8;
-            }
-
-            return false;
-        }
-
-        // 🎯 找到连通分量的有效子分组
-        function findValidSubGroupings(component, rayGraph) {
-            console.log(`\n🔍 为连通分量寻找子分组: [${component.map(e => e.name).join(', ')}]`);
-
-            const subGroupings = [];
-
-            // 方案1：保持整体
-            if (isHighlyConnected(component, rayGraph) && isSemanticallyCoherent(component)) {
-                subGroupings.push([component]);
-                console.log(`  方案1 - 保持整体: [${component.map(e => e.name).join(', ')}]`);
-            }
-
-            // 方案2：按行分组
-            const rowGroups = groupByRayDirection(component, rayGraph, 'horizontal');
-            if (rowGroups.length > 1) {
-                subGroupings.push(rowGroups);
-                console.log(`  方案2 - 按行分组:`);
-                rowGroups.forEach((group, i) => {
-                    console.log(`    行 ${i + 1}: [${group.map(e => e.name).join(', ')}]`);
-                });
-            }
-
-            // 方案3：按列分组
-            const columnGroups = groupByRayDirection(component, rayGraph, 'vertical');
-            if (columnGroups.length > 1) {
-                subGroupings.push(columnGroups);
-                console.log(`  方案3 - 按列分组:`);
-                columnGroups.forEach((group, i) => {
-                    console.log(`    列 ${i + 1}: [${group.map(e => e.name).join(', ')}]`);
-                });
-            }
-
-            // 方案4：语义分割
-            const semanticGroups = findSemanticGrouping(component, rayGraph);
-            if (semanticGroups.length > 1) {
-                subGroupings.push(semanticGroups);
-                console.log(`  方案4 - 语义分组:`);
-                semanticGroups.forEach((group, i) => {
-                    console.log(`    语义组 ${i + 1}: [${group.map(e => e.name).join(', ')}]`);
-                });
-            }
-
-            // 如果没有找到任何有效分组，返回单元素分组
-            if (subGroupings.length === 0) {
-                subGroupings.push(component.map(e => [e]));
-                console.log(`  回退 - 单元素分组: ${component.map(e => `[${e.name}]`).join(', ')}`);
-            }
-
-            return subGroupings;
-        }
-
-        // 🎯 检查语义一致性
-        function isSemanticallyCoherent(component) {
-            // 简单启发式：如果元素数量较少且空间紧密，认为语义相关
-            if (component.length <= 2) return true;
-            if (component.length > 4) return false; // 超过4个元素很可能不是一个语义单元
-
-            // 检查空间紧密性
-            const bounds = calculateGroupBounds(component);
-            const density = component.length / (bounds.width * bounds.height);
-
-            return density > 0.001; // 密度阈值
-        }
-
-        // 🎯 语义分组（基于间隙分析）
-        function findSemanticGrouping(component, rayGraph) {
-            console.log(`      🔍 进行语义分组分析`);
-
-            // 按Y坐标排序，分析垂直间隙
-            const sortedByY = [...component].sort((a, b) => a.y - b.y);
-            const groups = [];
-            let currentGroup = [];
-
-            for (let i = 0; i < sortedByY.length; i++) {
-                const element = sortedByY[i];
-
-                if (currentGroup.length === 0) {
-                    currentGroup.push(element);
-                } else {
-                    const lastElement = currentGroup[currentGroup.length - 1];
-                    const gap = element.y - (lastElement.y + lastElement.height);
-
-                    // 计算语义分割阈值
-                    const semanticThreshold = calculateSemanticThreshold(lastElement, element);
-
-                    console.log(`        📏 "${lastElement.name}" 到 "${element.name}" 间隙: ${gap}, 语义阈值: ${semanticThreshold}`);
-
-                    if (gap > semanticThreshold) {
-                        // 间隙过大，开始新组
-                        groups.push([...currentGroup]);
-                        console.log(`        📦 语义分割: [${currentGroup.map(e => e.name).join(', ')}]`);
-                        currentGroup = [element];
-                    } else {
-                        // 继续当前组
-                        currentGroup.push(element);
-                    }
-                }
-            }
-
-            if (currentGroup.length > 0) {
-                groups.push(currentGroup);
-                console.log(`        📦 最后语义组: [${currentGroup.map(e => e.name).join(', ')}]`);
-            }
-
-            return groups;
-        }
-
-        // 🎯 计算语义分割阈值
-        function calculateSemanticThreshold(elem1, elem2) {
-            // 基于元素高度的动态阈值
-            const avgHeight = (elem1.height + elem2.height) / 2;
-
-            // 如果元素高度差异很大，可能是不同类型的信息
-            const heightDiff = Math.abs(elem1.height - elem2.height);
-            const heightRatio = heightDiff / avgHeight;
-
-            // 基础阈值：平均高度的30%
-            let threshold = avgHeight * 0.3;
-
-            // 如果高度差异大，降低阈值（更容易分割）
-            if (heightRatio > 0.5) {
-                threshold *= 0.7;
-            }
-
-            // 如果元素很小，使用固定最小阈值
-            threshold = Math.max(threshold, 5);
-
-            return threshold;
-        }
-
-        // 🎯 检查分组是否等价
-        function isEquivalentGrouping(groups1, groups2) {
-            if (groups1.length !== groups2.length) return false;
-
-            // 简化检查：比较每组的元素数量
-            const sizes1 = groups1.map(g => g.length).sort();
-            const sizes2 = groups2.map(g => g.length).sort();
-
-            return sizes1.every((size, index) => size === sizes2[index]);
-        }
-
-        // 🎯 计算分组边界
-        function calculateGroupBounds(group) {
-            const minX = Math.min(...group.map(e => e.x));
-            const maxX = Math.max(...group.map(e => e.x + e.width));
-            const minY = Math.min(...group.map(e => e.y));
-            const maxY = Math.max(...group.map(e => e.y + e.height));
-
-            return {
-                x: minX,
-                y: minY,
-                width: maxX - minX,
-                height: maxY - minY
-            };
-        }
-
-        // 🎯 检查是否高度连接
-        function isHighlyConnected(component, rayGraph) {
-            if (component.length <= 2) return true;
-
-            const totalPossibleConnections = component.length * (component.length - 1) / 2;
-            const actualConnections = calculateGroupConnections(component, rayGraph);
-            const connectionRatio = actualConnections / totalPossibleConnections;
-
-            return connectionRatio > 0.6; // 60%以上的连接率认为是高度连接
-        }
-
-        // 🎯 按射线方向分组
-        function groupByRayDirection(component, rayGraph, direction) {
-            const groups = [];
-            const processed = new Set();
-
-            for (const element of component) {
-                if (processed.has(element.id)) continue;
-
-                const group = [];
-                const queue = [element];
-                const visited = new Set([element.id]);
-
-                while (queue.length > 0) {
-                    const current = queue.shift();
-                    group.push(current);
-                    processed.add(current.id);
-
-                    // 只考虑指定方向的连接
-                    const connections = rayGraph[direction].get(current.id) || new Set();
-                    for (const connectedId of connections) {
-                        if (!visited.has(connectedId) && !processed.has(connectedId)) {
-                            const connectedElement = rayGraph.elements.get(connectedId);
-                            if (connectedElement && component.some(e => e.id === connectedId)) {
-                                queue.push(connectedElement);
-                                visited.add(connectedId);
-                            }
-                        }
-                    }
-                }
-
-                if (group.length > 0) {
-                    groups.push(group);
-                }
-            }
-
-            return groups;
-        }
-
-        // 🎯 找到混合分组
-        function findMixedGrouping(component, rayGraph) {
-            // 使用贪心算法，优先选择连接最密集的子组
-            const groups = [];
-            const processed = new Set();
-
-            // 按连接度排序元素
-            const sortedElements = component.sort((a, b) => {
-                const aConnections = (rayGraph.horizontal.get(a.id)?.size || 0) + (rayGraph.vertical.get(a.id)?.size || 0);
-                const bConnections = (rayGraph.horizontal.get(b.id)?.size || 0) + (rayGraph.vertical.get(b.id)?.size || 0);
-                return bConnections - aConnections;
-            });
-
-            for (const element of sortedElements) {
-                if (processed.has(element.id)) continue;
-
-                const group = findOptimalSubGroup(element, component, rayGraph, processed);
-                if (group.length > 0) {
-                    groups.push(group);
-                    group.forEach(e => processed.add(e.id));
-                }
-            }
-
-            return groups;
-        }
-
-        // 🎯 找到最优子组
-        function findOptimalSubGroup(startElement, component, rayGraph, processed) {
-            const group = [startElement];
-            const candidates = component.filter(e => !processed.has(e.id) && e.id !== startElement.id);
-
-            // 贪心添加最相关的元素
-            while (candidates.length > 0) {
-                let bestCandidate = null;
-                let bestScore = -1;
-
-                for (const candidate of candidates) {
-                    const score = calculateGroupRelevance(candidate, group, rayGraph);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestCandidate = candidate;
-                    }
-                }
-
-                if (bestCandidate && bestScore > 0) {
-                    group.push(bestCandidate);
-                    candidates.splice(candidates.indexOf(bestCandidate), 1);
-                } else {
-                    break;
-                }
-            }
-
-            return group;
-        }
-
-        // 🎯 计算组相关性
-        function calculateGroupRelevance(candidate, group, rayGraph) {
-            let score = 0;
-
-            for (const groupMember of group) {
-                if (rayGraph.horizontal.get(candidate.id)?.has(groupMember.id)) score += 2;
-                if (rayGraph.vertical.get(candidate.id)?.has(groupMember.id)) score += 2;
-            }
-
-            return score;
-        }
-
-        // 🎯 组合分量分组
-        function combineComponentGroupings(componentGroupings) {
-            // 简化版本：取每个分量的第一个分组方案
-            const combined = [];
-            for (const groupings of componentGroupings) {
-                if (groupings.length > 0) {
-                    combined.push(...groupings[0]);
-                }
-            }
-            return [combined];
-        }
-
-        // 🎯 计算分组得分（深度×广度 + 均衡性惩罚）
-        function calculateGroupingScore(groups) {
-            // 基础指标
-            const maxGroupSize = Math.max(...groups.map(g => g.length));
-            const groupCount = groups.length;
-            const totalElements = groups.reduce((sum, g) => sum + g.length, 0);
-
-            // 深度 = 最大组内元素数
-            // 广度 = 总分组数
-            const depth = maxGroupSize;
-            const breadth = groupCount;
-            const baseScore = depth * breadth;
-
-            // 均衡性分析
-            const avgGroupSize = totalElements / groupCount;
-            const sizeVariance = groups.reduce((sum, g) => sum + Math.pow(g.length - avgGroupSize, 2), 0) / groupCount;
-            const balancePenalty = sizeVariance * 0.5; // 方差惩罚
-
-            // 极端值惩罚
-            const extremePenalty = calculateExtremePenalty(depth, breadth, totalElements);
-
-            const total = baseScore + balancePenalty + extremePenalty;
-
-            return {
-                depth,
-                breadth,
-                baseScore,
-                balancePenalty: Math.round(balancePenalty * 100) / 100,
-                extremePenalty: Math.round(extremePenalty * 100) / 100,
-                total: Math.round(total * 100) / 100
-            };
-        }
-
-        // 🎯 计算极端值惩罚
-        function calculateExtremePenalty(depth, breadth, totalElements) {
-            let penalty = 0;
-
-            // 理想的平衡点：深度和广度接近 sqrt(totalElements)
-            const idealBalance = Math.sqrt(totalElements);
-
-            // 深度过大惩罚（避免单个组过大）
-            if (depth > idealBalance * 1.5) {
-                penalty += (depth - idealBalance * 1.5) * 2;
-            }
-
-            // 广度过大惩罚（避免分组过多）
-            if (breadth > idealBalance * 1.5) {
-                penalty += (breadth - idealBalance * 1.5) * 2;
-            }
-
-            // 深度过小惩罚（避免分组过细）
-            if (depth < 2 && totalElements > 4) {
-                penalty += (2 - depth) * 3;
-            }
-
-            // 广度过小惩罚（避免单一大组）
-            if (breadth < 2 && totalElements > 4) {
-                penalty += (2 - breadth) * 5;
-            }
-
-            return penalty;
-        }
-
-
-
-        // 🎯 构建目标大小的分组
-        function buildTargetSizeGroup(startElement, allElements, rayGraph, processed, targetSize) {
-            const group = [startElement];
-            const candidates = allElements.filter(e => !processed.has(e.id) && e.id !== startElement.id);
-
-            // 按连接强度排序候选元素
-            const scoredCandidates = candidates.map(candidate => ({
-                element: candidate,
-                score: calculateConnectionScore(startElement, candidate, rayGraph, group)
-            })).sort((a, b) => b.score - a.score);
-
-            // 贪心添加元素直到达到目标大小
-            for (const { element } of scoredCandidates) {
-                if (group.length >= targetSize) break;
-
-                // 检查是否与组内任何元素有连接
-                if (hasConnectionToGroup(element, group, rayGraph)) {
-                    group.push(element);
-                }
-            }
-
-            return group;
-        }
-
-        // 🎯 计算连接得分
-        function calculateConnectionScore(anchor, candidate, rayGraph, currentGroup) {
-            let score = 0;
-
-            // 与锚点的直接连接
-            if (rayGraph.horizontal.get(anchor.id)?.has(candidate.id)) score += 3;
-            if (rayGraph.vertical.get(anchor.id)?.has(candidate.id)) score += 3;
-
-            // 与组内其他元素的连接
-            for (const groupMember of currentGroup) {
-                if (rayGraph.horizontal.get(groupMember.id)?.has(candidate.id)) score += 2;
-                if (rayGraph.vertical.get(groupMember.id)?.has(candidate.id)) score += 2;
-            }
-
-            // 距离惩罚
-            const distance = calculateMinDistance(anchor, candidate);
-            score -= distance * 0.01;
-
-            return score;
-        }
-
-        // 🎯 检查是否与分组有连接
-        function hasConnectionToGroup(element, group, rayGraph) {
-            return group.some(groupMember => {
-                return rayGraph.horizontal.get(element.id)?.has(groupMember.id) ||
-                       rayGraph.vertical.get(element.id)?.has(groupMember.id);
-            });
-        }
-
-        // 🎯 评估分组均衡性
-        function evaluateGroupBalance(group, idealSize, rayGraph) {
-            if (group.length === 0) return -Infinity;
-
-            // 大小接近理想值的得分更高
-            const sizeScore = idealSize - Math.abs(group.length - idealSize);
-
-            // 连接密度得分
-            const connectionDensity = rayGraph ?
-                calculateGroupConnections(group, rayGraph) / Math.max(1, group.length - 1) : 0;
-
-            return sizeScore + connectionDensity;
-        }
-
-        // 🎯 找到最优行分组
-        function findOptimalRows(elements, rayGraph) {
-            console.log(`      🔍 寻找最优行分组`);
-
-            const rows = [];
-            const processed = new Set();
-
-            const sortedByY = [...elements].sort((a, b) => a.y - b.y);
-
-            for (const element of sortedByY) {
-                if (processed.has(element.id)) continue;
-
-                const row = findMaxHorizontalComponent(element, elements, rayGraph, processed);
-
-                if (row.length > 0) {
-                    rows.push(row);
-                    row.forEach(e => processed.add(e.id));
-                }
-            }
-
-            return rows;
-        }
-
-        // 🎯 在行内找到最优列分组
-        function findOptimalColumnsInRow(rowElements, rayGraph) {
-            console.log(`      🔍 在行内寻找最优列分组`);
-
-            const columns = [];
-            const processed = new Set();
-
-            const sortedByX = [...rowElements].sort((a, b) => a.x - b.x);
-
-            for (const element of sortedByX) {
-                if (processed.has(element.id)) continue;
-
-                const column = findMaxVerticalComponent(element, rowElements, rayGraph, processed);
-
-                if (column.length > 0) {
-                    columns.push(column);
-                    column.forEach(e => processed.add(e.id));
-                }
-            }
-
-            return columns;
-        }
-
-        // 🎯 找到最大连通分量
-        function findMaxConnectedComponent(startElement, allElements, rayGraph, processed) {
-            const component = [];
-            const queue = [startElement];
-            const visited = new Set([startElement.id]);
-
-            while (queue.length > 0) {
-                const current = queue.shift();
-                if (processed.has(current.id)) continue;
-
-                component.push(current);
-
-                // 遍历所有连接（水平+垂直）
-                const allConnections = new Set([
-                    ...(rayGraph.horizontal.get(current.id) || []),
-                    ...(rayGraph.vertical.get(current.id) || [])
-                ]);
-
-                for (const connectedId of allConnections) {
-                    if (!visited.has(connectedId) && !processed.has(connectedId)) {
-                        const connectedElement = rayGraph.elements.get(connectedId);
-                        if (connectedElement) {
-                            queue.push(connectedElement);
-                            visited.add(connectedId);
-                        }
-                    }
-                }
-            }
-
-            return component;
-        }
-
-        // 🎯 计算分组内连接数
-        function calculateGroupConnections(group, rayGraph) {
-            let connections = 0;
-
-            for (let i = 0; i < group.length; i++) {
-                for (let j = i + 1; j < group.length; j++) {
-                    const elem1 = group[i];
-                    const elem2 = group[j];
-
-                    const horizontalConnected = rayGraph.horizontal.get(elem1.id)?.has(elem2.id);
-                    const verticalConnected = rayGraph.vertical.get(elem1.id)?.has(elem2.id);
-
-                    if (horizontalConnected || verticalConnected) {
-                        connections++;
-                    }
-                }
-            }
-
-            return connections;
-        }
-
-        // 🎯 找到最优列分组
-        function findOptimalColumns(elements, rayGraph) {
-            console.log(`  🔍 寻找最优列分组`);
-
-            const columns = [];
-            const processed = new Set();
-
-            // 按X坐标排序，优先处理左侧元素
-            const sortedByX = [...elements].sort((a, b) => a.x - b.x);
-
-            for (const element of sortedByX) {
-                if (processed.has(element.id)) continue;
-
-                // 使用动态规划找到包含当前元素的最大垂直连通分量
-                const column = findMaxVerticalComponent(element, elements, rayGraph, processed);
-
-                if (column.length > 0) {
-                    columns.push(column);
-                    column.forEach(e => processed.add(e.id));
-
-                    // 计算列的边界信息
-                    const columnBounds = calculateColumnBounds(column);
-                    console.log(`    📦 列 ${columns.length}: [${column.map(e => e.name).join(', ')}] 宽度=${columnBounds.width}`);
-                }
-            }
-
-            return columns;
-        }
-
-        // 🎯 找到最大垂直连通分量
-        function findMaxVerticalComponent(startElement, allElements, rayGraph, processed) {
-            const component = [];
-            const queue = [startElement];
-            const visited = new Set([startElement.id]);
-
-            while (queue.length > 0) {
-                const current = queue.shift();
-                if (processed.has(current.id)) continue;
-
-                component.push(current);
-
-                // 遍历所有垂直连接的元素
-                const verticalConnections = rayGraph.vertical.get(current.id) || new Set();
-                for (const connectedId of verticalConnections) {
-                    if (!visited.has(connectedId) && !processed.has(connectedId)) {
-                        const connectedElement = rayGraph.elements.get(connectedId);
-                        queue.push(connectedElement);
-                        visited.add(connectedId);
-                    }
-                }
-            }
-
-            return component;
-        }
-
-        // 🎯 在列内找到最优行分组
-        function findOptimalRowsInColumn(columnElements, rayGraph) {
-            console.log(`    🔍 在列内寻找最优行分组`);
-
-            const rows = [];
-            const processed = new Set();
-
-            // 按Y坐标排序，优先处理顶部元素
-            const sortedByY = [...columnElements].sort((a, b) => a.y - b.y);
-
-            for (const element of sortedByY) {
-                if (processed.has(element.id)) continue;
-
-                // 使用动态规划找到包含当前元素的最大水平连通分量
-                const row = findMaxHorizontalComponent(element, columnElements, rayGraph, processed);
-
-                if (row.length > 0) {
-                    rows.push(row);
-                    row.forEach(e => processed.add(e.id));
-
-                    // 计算行的边界信息
-                    const rowBounds = calculateRowBounds(row);
-                    console.log(`      📦 行 ${rows.length}: [${row.map(e => e.name).join(', ')}] 高度=${rowBounds.height}`);
-                }
-            }
-
-            return rows;
-        }
-
-        // 🎯 找到最大水平连通分量
-        function findMaxHorizontalComponent(startElement, columnElements, rayGraph, processed) {
-            const component = [];
-            const queue = [startElement];
-            const visited = new Set([startElement.id]);
-
-            while (queue.length > 0) {
-                const current = queue.shift();
-                if (processed.has(current.id)) continue;
-
-                component.push(current);
-
-                // 遍历所有水平连接的元素（限制在当前列内）
-                const horizontalConnections = rayGraph.horizontal.get(current.id) || new Set();
-                for (const connectedId of horizontalConnections) {
-                    if (!visited.has(connectedId) && !processed.has(connectedId)) {
-                        const connectedElement = rayGraph.elements.get(connectedId);
-                        // 确保连接的元素在当前列内
-                        if (columnElements.some(e => e.id === connectedId)) {
-                            queue.push(connectedElement);
-                            visited.add(connectedId);
-                        }
-                    }
-                }
-            }
-
-            return component;
-        }
-
-        // 🎯 计算列边界
-        function calculateColumnBounds(column) {
-            const minX = Math.min(...column.map(e => e.x));
-            const maxX = Math.max(...column.map(e => e.x + e.width));
-            const minY = Math.min(...column.map(e => e.y));
-            const maxY = Math.max(...column.map(e => e.y + e.height));
-
-            return {
-                x: minX,
-                y: minY,
-                width: maxX - minX,
-                height: maxY - minY
-            };
-        }
-
-        // 🎯 计算行边界
-        function calculateRowBounds(row) {
-            const minX = Math.min(...row.map(e => e.x));
-            const maxX = Math.max(...row.map(e => e.x + e.width));
-            const minY = Math.min(...row.map(e => e.y));
-            const maxY = Math.max(...row.map(e => e.y + e.height));
-
-            return {
-                x: minX,
-                y: minY,
-                width: maxX - minX,
-                height: maxY - minY
-            };
-        }
-
-        // 🎯 递归射线分组
-        function recursiveRayGrouping(elements, depth) {
-            const indent = '  '.repeat(depth);
-            console.log(`${indent}🔍 递归分组 (深度${depth}): [${elements.map(e => e.name).join(', ')}]`);
-
-            if (elements.length <= 1) {
-                console.log(`${indent}📦 单元素或空组，直接返回`);
-                return elements.length > 0 ? [elements] : [];
-            }
-
-            // 1. 尝试水平射线分组
-            const horizontalGroups = groupByHorizontalRays(elements, depth);
-
-            if (horizontalGroups.length > 1) {
-                // 水平分组成功，递归处理每个水平组
-                console.log(`${indent}✅ 水平分组成功，分成 ${horizontalGroups.length} 组`);
-                const finalGroups = [];
-
-                horizontalGroups.forEach((hGroup, index) => {
-                    console.log(`${indent}🔄 递归处理水平组 ${index + 1}: [${hGroup.map(e => e.name).join(', ')}]`);
-                    const subGroups = recursiveRayGrouping(hGroup, depth + 1);
-                    finalGroups.push(...subGroups);
-                });
-
-                return finalGroups;
-            } else {
-                // 水平分组失败，尝试垂直射线分组
-                console.log(`${indent}🔄 水平分组失败，尝试垂直分组`);
-                const verticalGroups = groupByVerticalRays(elements, depth);
-
-                if (verticalGroups.length > 1) {
-                    console.log(`${indent}✅ 垂直分组成功，分成 ${verticalGroups.length} 组`);
-                    const finalGroups = [];
-
-                    verticalGroups.forEach((vGroup, index) => {
-                        console.log(`${indent}🔄 递归处理垂直组 ${index + 1}: [${vGroup.map(e => e.name).join(', ')}]`);
-                        const subGroups = recursiveRayGrouping(vGroup, depth + 1);
-                        finalGroups.push(...subGroups);
-                    });
-
-                    return finalGroups;
-                } else {
-                    // 无法进一步分组，返回整体
-                    console.log(`${indent}📦 无法进一步分组，作为整体: [${elements.map(e => e.name).join(', ')}]`);
-                    return [elements];
-                }
-            }
-        }
-
-        // 🎯 基于水平射线分组
-        function groupByHorizontalRays(elements, depth) {
-            const indent = '  '.repeat(depth);
-            console.log(`${indent}🔍 尝试水平射线分组`);
-
-            // 按Y坐标排序
-            const sortedByY = [...elements].sort((a, b) => a.y - b.y);
-
-            const groups = [];
-            const processed = new Set();
-
-            for (const element of sortedByY) {
-                if (processed.has(element.id)) continue;
-
-                // 找到所有能通过水平射线连接的元素
-                const horizontalGroup = findHorizontalRayGroup(element, elements, processed);
-
-                if (horizontalGroup.length > 0) {
-                    groups.push(horizontalGroup);
-                    horizontalGroup.forEach(e => processed.add(e.id));
-                    console.log(`${indent}  📦 水平组: [${horizontalGroup.map(e => e.name).join(', ')}]`);
-                }
-            }
-
-            console.log(`${indent}📊 水平分组结果: ${groups.length} 组`);
-            return groups;
-        }
-
-        // 🎯 基于垂直射线分组
-        function groupByVerticalRays(elements, depth) {
-            const indent = '  '.repeat(depth);
-            console.log(`${indent}🔍 尝试垂直射线分组`);
-
-            // 按X坐标排序
-            const sortedByX = [...elements].sort((a, b) => a.x - b.x);
-
-            const groups = [];
-            const processed = new Set();
-
-            for (const element of sortedByX) {
-                if (processed.has(element.id)) continue;
-
-                // 找到所有能通过垂直射线连接的元素
-                const verticalGroup = findVerticalRayGroup(element, elements, processed);
-
-                if (verticalGroup.length > 0) {
-                    groups.push(verticalGroup);
-                    verticalGroup.forEach(e => processed.add(e.id));
-                    console.log(`${indent}  📦 垂直组: [${verticalGroup.map(e => e.name).join(', ')}]`);
-                }
-            }
-
-            console.log(`${indent}📊 垂直分组结果: ${groups.length} 组`);
-            return groups;
-        }
-
-        // 🎯 找到水平射线连接的组
-        function findHorizontalRayGroup(startElement, allElements, processed) {
-            const group = [startElement];
-            const queue = [startElement];
-            const inGroup = new Set([startElement.id]);
-
-            while (queue.length > 0) {
-                const current = queue.shift();
-
-                // 发射左右射线
-                for (const candidate of allElements) {
-                    if (processed.has(candidate.id) || inGroup.has(candidate.id)) continue;
-
-                    // 检查是否在同一水平线上（Y轴重叠）
-                    const yOverlap = !(
-                        current.y + current.height <= candidate.y ||
-                        candidate.y + candidate.height <= current.y
-                    );
-
-                    if (yOverlap) {
-                        // 检查水平射线是否被阻挡
-                        if (!isHorizontalRayBlocked(current, candidate, allElements)) {
-                            group.push(candidate);
-                            queue.push(candidate);
-                            inGroup.add(candidate.id);
-                        }
-                    }
-                }
-            }
-
-            return group;
-        }
-
-        // 🎯 找到垂直射线连接的组
-        function findVerticalRayGroup(startElement, allElements, processed) {
-            const group = [startElement];
-            const queue = [startElement];
-            const inGroup = new Set([startElement.id]);
-
-            while (queue.length > 0) {
-                const current = queue.shift();
-
-                // 发射上下射线
-                for (const candidate of allElements) {
-                    if (processed.has(candidate.id) || inGroup.has(candidate.id)) continue;
-
-                    // 检查是否在同一垂直线上（X轴重叠）
-                    const xOverlap = !(
-                        current.x + current.width <= candidate.x ||
-                        candidate.x + candidate.width <= current.x
-                    );
-
-                    if (xOverlap) {
-                        // 检查垂直射线是否被阻挡
-                        if (!isVerticalRayBlocked(current, candidate, allElements)) {
-                            group.push(candidate);
-                            queue.push(candidate);
-                            inGroup.add(candidate.id);
-                        }
-                    }
-                }
-            }
-
-            return group;
-        }
-
-        // 🎯 检查水平射线是否被阻挡
-        function isHorizontalRayBlocked(elem1, elem2, allElements) {
-            // 创建水平射线路径
-            const rayPath = {
-                left: Math.min(elem1.x + elem1.width, elem2.x),
-                right: Math.max(elem1.x, elem2.x + elem2.width),
-                top: Math.max(elem1.y, elem2.y),
-                bottom: Math.min(elem1.y + elem1.height, elem2.y + elem2.height)
-            };
-
-            // 如果没有Y轴重叠区域，无法连接
-            if (rayPath.top >= rayPath.bottom) return true;
-
-            // 检查是否有其他元素阻挡射线路径
-            for (const other of allElements) {
-                if (other.id === elem1.id || other.id === elem2.id) continue;
-
-                // 检查其他元素是否与射线路径相交
-                const intersects = !(
-                    other.x + other.width <= rayPath.left ||
-                    other.x >= rayPath.right ||
-                    other.y + other.height <= rayPath.top ||
-                    other.y >= rayPath.bottom
-                );
-
-                if (intersects) {
-                    return true; // 被阻挡
-                }
-            }
-
-            return false; // 未被阻挡
-        }
-
-        // 🎯 检查垂直射线是否被阻挡
-        function isVerticalRayBlocked(elem1, elem2, allElements) {
-            // 创建垂直射线路径
-            const rayPath = {
-                left: Math.max(elem1.x, elem2.x),
-                right: Math.min(elem1.x + elem1.width, elem2.x + elem2.width),
-                top: Math.min(elem1.y + elem1.height, elem2.y),
-                bottom: Math.max(elem1.y, elem2.y + elem2.height)
-            };
-
-            // 如果没有X轴重叠区域，无法连接
-            if (rayPath.left >= rayPath.right) return true;
-
-            // 检查是否有其他元素阻挡射线路径
-            for (const other of allElements) {
-                if (other.id === elem1.id || other.id === elem2.id) continue;
-
-                // 检查其他元素是否与射线路径相交
-                const intersects = !(
-                    other.x + other.width <= rayPath.left ||
-                    other.x >= rayPath.right ||
-                    other.y + other.height <= rayPath.top ||
-                    other.y >= rayPath.bottom
-                );
-
-                if (intersects) {
-                    return true; // 被阻挡
-                }
-            }
-
-            return false; // 未被阻挡
-        }
-
-        // 🎯 识别列结构
-        function identifyColumns(elements) {
-            console.log(`\n🔍 识别列结构`);
-
-            // 按X坐标排序
-            const sortedByX = [...elements].sort((a, b) => a.x - b.x);
-
-            const columns = [];
-            let currentColumn = [];
-
-            for (const element of sortedByX) {
-                if (currentColumn.length === 0) {
-                    currentColumn.push(element);
-                } else {
-                    // 检查是否与当前列有X轴重叠或接近
-                    const canJoinColumn = currentColumn.some(colElement => {
-                        // X轴重叠检查
-                        const xOverlap = !(element.x >= colElement.x + colElement.width ||
-                                         element.x + element.width <= colElement.x);
-
-                        // X轴接近检查（距离小于平均宽度的50%）
-                        const avgWidth = (element.width + colElement.width) / 2;
-                        const xDistance = Math.min(
-                            Math.abs(element.x - (colElement.x + colElement.width)),
-                            Math.abs(colElement.x - (element.x + element.width))
-                        );
-                        const xClose = xDistance <= avgWidth * 0.5;
-
-                        return xOverlap || xClose;
-                    });
-
-                    if (canJoinColumn) {
-                        currentColumn.push(element);
-                    } else {
-                        columns.push([...currentColumn]);
-                        console.log(`  📦 完成列: [${currentColumn.map(e => e.name).join(', ')}]`);
-                        currentColumn = [element];
-                    }
-                }
-            }
-
-            if (currentColumn.length > 0) {
-                columns.push(currentColumn);
-                console.log(`  📦 最后列: [${currentColumn.map(e => e.name).join(', ')}]`);
-            }
-
-            return columns;
-        }
-
-        // 🎯 在列内智能分组（考虑上下布局）
-        function groupColumnByRows(columnElements) {
-            console.log(`  🔍 在列内智能分组: [${columnElements.map(e => e.name).join(', ')}]`);
-
-            // 按Y坐标排序
-            const sortedByY = [...columnElements].sort((a, b) => a.y - b.y);
-
-            // 1. 先识别水平行（同一Y轴位置的元素）
-            const horizontalRows = identifyHorizontalRows(sortedByY);
-
-            // 2. 然后识别垂直组（上下相邻的元素）
-            const finalGroups = [];
-
-            horizontalRows.forEach(row => {
-                if (row.length === 1) {
-                    // 单个元素，检查是否与其他单个元素形成垂直组
-                    finalGroups.push(row);
-                } else {
-                    // 多个元素在同一行，保持为一组
-                    finalGroups.push(row);
-                    console.log(`    📦 水平行组: [${row.map(e => e.name).join(', ')}]`);
-                }
-            });
-
-            // 3. 合并相邻的单元素组为垂直组
-            const mergedGroups = mergeVerticalGroups(finalGroups);
-
-            return mergedGroups;
-        }
-
-        // 🎯 识别水平行
-        function identifyHorizontalRows(sortedElements) {
-            console.log(`    🔍 识别水平行`);
-
-            const rows = [];
-            let currentRow = [];
-
-            for (const element of sortedElements) {
-                if (currentRow.length === 0) {
-                    currentRow.push(element);
-                } else {
-                    // 检查是否与当前行有Y轴重叠（同一水平行）
-                    const canJoinRow = currentRow.some(rowElement => {
-                        const yOverlap = !(element.y >= rowElement.y + rowElement.height ||
-                                         element.y + element.height <= rowElement.y);
-                        return yOverlap;
-                    });
-
-                    if (canJoinRow) {
-                        currentRow.push(element);
-                        console.log(`      ➡️ 添加到水平行: ${element.name}`);
-                    } else {
-                        rows.push([...currentRow]);
-                        console.log(`      📦 完成水平行: [${currentRow.map(e => e.name).join(', ')}]`);
-                        currentRow = [element];
-                    }
-                }
-            }
-
-            if (currentRow.length > 0) {
-                rows.push(currentRow);
-                console.log(`      📦 最后水平行: [${currentRow.map(e => e.name).join(', ')}]`);
-            }
-
-            return rows;
-        }
-
-        // 🎯 合并垂直相邻的单元素组
-        function mergeVerticalGroups(groups) {
-            console.log(`    🔍 合并垂直组`);
-
-            const result = [];
-            let i = 0;
-
-            while (i < groups.length) {
-                const currentGroup = groups[i];
-
-                if (currentGroup.length === 1) {
-                    // 单元素组，检查是否可以与下一个单元素组合并
-                    const verticalGroup = [currentGroup[0]];
-                    let j = i + 1;
-
-                    while (j < groups.length && groups[j].length === 1) {
-                        const nextElement = groups[j][0];
-                        const lastElement = verticalGroup[verticalGroup.length - 1];
-
-                        // 检查是否垂直相邻
-                        const yGap = nextElement.y - (lastElement.y + lastElement.height);
-                        const avgHeight = (nextElement.height + lastElement.height) / 2;
-
-                        if (yGap <= avgHeight * 0.5) { // 垂直间距小于平均高度的50%
-                            verticalGroup.push(nextElement);
-                            console.log(`      ⬇️ 合并垂直元素: ${nextElement.name}`);
-                            j++;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    result.push(verticalGroup);
-                    if (verticalGroup.length > 1) {
-                        console.log(`    📦 垂直组: [${verticalGroup.map(e => e.name).join(', ')}]`);
-                    }
-                    i = j;
-                } else {
-                    // 多元素组，直接添加
-                    result.push(currentGroup);
-                    i++;
-                }
-            }
-
-            return result;
-        }
-
-        // 🎯 构建射线关系
-        function buildRayRelations(elements) {
-            console.log(`\n🔍 构建射线关系`);
-            const relations = new Map();
-
-            elements.forEach(element => {
-                const rays = {
-                    left: [],    // 左射线能到达的元素
-                    right: [],   // 右射线能到达的元素
-                    up: [],      // 上射线能到达的元素
-                    down: []     // 下射线能到达的元素
-                };
-
-                // 检查每个方向的射线
-                elements.forEach(other => {
-                    if (other.id === element.id) return;
-
-                    const rayHit = checkRayHit(element, other);
-                    if (rayHit.direction) {
-                        rays[rayHit.direction].push(other);
-                    }
-                });
-
-                relations.set(element.id, rays);
-                console.log(`  ${element.name} 射线关系:`, {
-                    left: rays.left.map(e => e.name),
-                    right: rays.right.map(e => e.name),
-                    up: rays.up.map(e => e.name),
-                    down: rays.down.map(e => e.name)
-                });
-            });
-
-            return relations;
-        }
-
-        // 🎯 检查射线是否击中目标元素
-        function checkRayHit(source, target) {
-            const sourceCenter = {
-                x: source.x + source.width / 2,
-                y: source.y + source.height / 2
-            };
-            const targetCenter = {
-                x: target.x + target.width / 2,
-                y: target.y + target.height / 2
-            };
-
-            // 检查是否在同一行（水平射线）
-            const verticalOverlap = !(
-                source.y + source.height <= target.y ||
-                target.y + target.height <= source.y
-            );
-
-            // 检查是否在同一列（垂直射线）
-            const horizontalOverlap = !(
-                source.x + source.width <= target.x ||
-                target.x + target.width <= source.x
-            );
-
-            if (verticalOverlap) {
-                // 水平射线
-                if (targetCenter.x > sourceCenter.x) {
-                    return { direction: 'right', distance: targetCenter.x - sourceCenter.x };
-                } else if (targetCenter.x < sourceCenter.x) {
-                    return { direction: 'left', distance: sourceCenter.x - targetCenter.x };
-                }
-            }
-
-            if (horizontalOverlap) {
-                // 垂直射线
-                if (targetCenter.y > sourceCenter.y) {
-                    return { direction: 'down', distance: targetCenter.y - sourceCenter.y };
-                } else if (targetCenter.y < sourceCenter.y) {
-                    return { direction: 'up', distance: sourceCenter.y - targetCenter.y };
-                }
-            }
-
-            return { direction: null };
-        }
-
-        // 🎯 找到射线连接的分组
-        function findRayConnectedGroup(startElement, allElements, rayRelations, processed) {
-            const group = [startElement];
-            console.log(`\n🔍 从 "${startElement.name}" 开始寻找射线连接分组`);
-
-            // 使用广度优先搜索，通过射线关系连接元素
-            const queue = [startElement];
-            const inGroup = new Set([startElement.id]);
-
-            while (queue.length > 0) {
-                const current = queue.shift();
-                const rays = rayRelations.get(current.id);
-
-                if (!rays) continue;
-
-                // 检查所有方向的射线连接
-                ['left', 'right', 'up', 'down'].forEach(direction => {
-                    rays[direction].forEach(neighbor => {
-                        if (processed.has(neighbor.id) || inGroup.has(neighbor.id)) return;
-
-                        // 检查是否应该加入分组
-                        if (shouldJoinRayGroup(current, neighbor, direction, allElements)) {
-                            group.push(neighbor);
-                            queue.push(neighbor);
-                            inGroup.add(neighbor.id);
-                            console.log(`  ✅ 通过${direction}射线添加: ${neighbor.name}`);
-                        }
-                    });
-                });
-            }
-
-            return group;
-        }
-
-        // 🎯 判断是否应该通过射线加入分组
-        function shouldJoinRayGroup(source, target, direction, allElements) {
-            // 1. 检查射线路径是否被阻挡
-            if (isRayBlocked(source, target, direction, allElements)) {
-                console.log(`    🚫 ${direction}射线被阻挡，不能分组`);
-                return false;
-            }
-
-            // 2. 检查距离是否合理
-            const distance = calculateMinDistance(source, target);
-            const avgSize = (source.width + source.height + target.width + target.height) / 4;
-
-            if (distance > avgSize * 2) {
-                console.log(`    📏 射线距离过远: ${distance} > ${avgSize * 2}`);
-                return false;
-            }
-
-            return true;
-        }
-
-        // 🎯 检查射线是否被阻挡
-        function isRayBlocked(source, target, direction, allElements) {
-            const sourceCenter = {
-                x: source.x + source.width / 2,
-                y: source.y + source.height / 2
-            };
-            const targetCenter = {
-                x: target.x + target.width / 2,
-                y: target.y + target.height / 2
-            };
-
-            // 根据方向创建射线路径
-            let rayPath;
-            if (direction === 'left' || direction === 'right') {
-                // 水平射线
-                rayPath = {
-                    x1: Math.min(sourceCenter.x, targetCenter.x),
-                    x2: Math.max(sourceCenter.x, targetCenter.x),
-                    y1: Math.min(source.y, target.y),
-                    y2: Math.max(source.y + source.height, target.y + target.height)
-                };
-            } else {
-                // 垂直射线
-                rayPath = {
-                    x1: Math.min(source.x, target.x),
-                    x2: Math.max(source.x + source.width, target.x + target.width),
-                    y1: Math.min(sourceCenter.y, targetCenter.y),
-                    y2: Math.max(sourceCenter.y, targetCenter.y)
-                };
-            }
-
-            // 检查是否有其他元素阻挡射线路径
-            for (const other of allElements) {
-                if (other.id === source.id || other.id === target.id) continue;
-
-                // 检查其他元素是否与射线路径相交
-                const intersects = !(
-                    other.x + other.width <= rayPath.x1 ||
-                    other.x >= rayPath.x2 ||
-                    other.y + other.height <= rayPath.y1 ||
-                    other.y >= rayPath.y2
-                );
-
-                if (intersects) {
-                    console.log(`      🚫 "${other.name}" 阻挡了${direction}射线`);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        // 🎯 找到空间相关的分组（修复版本）
-        function findSpatialGroup(startElement, allElements, processed) {
-            const group = [startElement];
-            console.log(`\n🔍 从 "${startElement.name}" 开始寻找空间分组`);
-
-            // 使用迭代方式，每次添加新元素后重新检查
-            let changed = true;
-            while (changed) {
-                changed = false;
-
-                for (const candidate of allElements) {
-                    if (processed.has(candidate.id) || group.some(g => g.id === candidate.id)) continue;
-
-                    // 检查候选元素是否与组内任何元素相邻
-                    const canJoinGroup = group.some(groupMember => {
-                        return shouldJoinSpatialGroup(groupMember, candidate, allElements);
-                    });
-
-                    if (canJoinGroup) {
-                        group.push(candidate);
-                        console.log(`  ✅ 添加到分组: ${candidate.name}`);
-                        changed = true; // 有新元素加入，需要重新检查
-                    }
-                }
-            }
-
-            return group;
-        }
-
-        // 🎯 基于截断检测的分组判断（无阈值版本）
-        function shouldJoinSpatialGroup(anchor, candidate, allElements) {
-            console.log(`    🔍 检查 "${candidate.name}" 是否可以与 "${anchor.name}" 分组`);
-            console.log(`      锚点: (${anchor.x},${anchor.y},${anchor.width}×${anchor.height})`);
-            console.log(`      候选: (${candidate.x},${candidate.y},${candidate.width}×${candidate.height})`);
-
-            // 1. 检查从anchor到candidate的路径是否被截断
-            const isBlocked = isPathBlocked(anchor, candidate, allElements);
-
-            if (isBlocked) {
-                console.log(`    🚫 "${candidate.name}" 被其他元素截断，无法与 "${anchor.name}" 分组`);
-                return false;
-            }
-
-            console.log(`    ✅ "${candidate.name}" 可以与 "${anchor.name}" 分组（无截断）`);
-            return true;
-        }
-
-        // 🎯 检查路径是否被阻挡（修复版本）
-        function isPathBlocked(elem1, elem2, allElements) {
-            // 1. 首先检查基本距离 - 如果距离太远，直接认为被"虚拟阻挡"
-            const distance = calculateMinDistance(elem1, elem2);
-            const avgSize = (elem1.width + elem1.height + elem2.width + elem2.height) / 4;
-
-            // 如果距离超过平均尺寸的1.5倍，认为被阻挡
-            if (distance > avgSize * 1.5) {
-                console.log(`      📏 距离过远被视为阻挡: ${distance} > ${avgSize * 1.5}`);
-                return true;
-            }
-
-            // 2. 检查Y坐标差距 - 防止跨行分组
-            const yGap = Math.abs(elem1.y - elem2.y);
-            const maxHeight = Math.max(elem1.height, elem2.height);
-
-            if (yGap > maxHeight * 0.8) {
-                console.log(`      📐 Y坐标差距过大被视为阻挡: ${yGap} > ${maxHeight * 0.8}`);
-                return true;
-            }
-
-            // 3. 检查实际的物理阻挡
-            const connectionRect = {
-                left: Math.min(elem1.x, elem2.x),
-                right: Math.max(elem1.x + elem1.width, elem2.x + elem2.width),
-                top: Math.min(elem1.y, elem2.y),
-                bottom: Math.max(elem1.y + elem1.height, elem2.y + elem2.height)
-            };
-
-            console.log(`      连接区域: (${connectionRect.left},${connectionRect.top}) 到 (${connectionRect.right},${connectionRect.bottom})`);
-
-            // 检查是否有其他元素在连接路径上
-            for (const other of allElements) {
-                if (other.id === elem1.id || other.id === elem2.id) continue;
-
-                // 检查其他元素是否与连接区域重叠
-                const otherRect = {
-                    left: other.x,
-                    right: other.x + other.width,
-                    top: other.y,
-                    bottom: other.y + other.height
-                };
-
-                // 检查重叠
-                const overlaps = !(
-                    otherRect.right <= connectionRect.left ||
-                    otherRect.left >= connectionRect.right ||
-                    otherRect.bottom <= connectionRect.top ||
-                    otherRect.top >= connectionRect.bottom
-                );
-
-                if (overlaps) {
-                    // 进一步检查是否真的阻挡了连接
-                    if (isReallyBlocking(elem1, elem2, other)) {
-                        console.log(`      🚫 "${other.name}" 物理阻挡了连接`);
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        // 🎯 检查元素是否真的阻挡连接
-        function isReallyBlocking(elem1, elem2, blocker) {
-            // 检查阻挡元素是否在两个元素的连接路径的关键区域
-            const elem1Center = { x: elem1.x + elem1.width / 2, y: elem1.y + elem1.height / 2 };
-            const elem2Center = { x: elem2.x + elem2.width / 2, y: elem2.y + elem2.height / 2 };
-            const blockerCenter = { x: blocker.x + blocker.width / 2, y: blocker.y + blocker.height / 2 };
-
-            // 简化版本：如果阻挡元素的中心在两个元素的边界框内，则认为阻挡
-            const minX = Math.min(elem1.x, elem2.x);
-            const maxX = Math.max(elem1.x + elem1.width, elem2.x + elem2.width);
-            const minY = Math.min(elem1.y, elem2.y);
-            const maxY = Math.max(elem1.y + elem1.height, elem2.y + elem2.height);
-
-            const isInPath = (
-                blockerCenter.x >= minX && blockerCenter.x <= maxX &&
-                blockerCenter.y >= minY && blockerCenter.y <= maxY
-            );
-
-            return isInPath;
-        }
-
-        // 🎯 检查空间关系是否合理
-        function checkSpatialRelationship(elem1, elem2) {
-            // 检查是否在合理的相对位置
-            const xOverlap = !(elem1.x + elem1.width <= elem2.x || elem2.x + elem2.width <= elem1.x);
-            const yOverlap = !(elem1.y + elem1.height <= elem2.y || elem2.y + elem2.height <= elem1.y);
-
-            // 如果有重叠，或者在合理的邻近位置，则认为合理
-            if (xOverlap || yOverlap) {
-                return true;
-            }
-
-            // 检查是否在合理的邻近位置（横向或纵向对齐）
-            const horizontallyAligned = Math.abs(elem1.y - elem2.y) <= Math.max(elem1.height, elem2.height) * 0.5;
-            const verticallyAligned = Math.abs(elem1.x - elem2.x) <= Math.max(elem1.width, elem2.width) * 0.5;
-
-            return horizontallyAligned || verticallyAligned;
-        }
-
-        // 🎯 找到紧邻的元素（超严格版本）
-        function findImmediateNeighbors(startElement, allElements, processed) {
-            const group = [startElement];
-
-            console.log(`\n🔍 从 "${startElement.name}" 开始寻找紧邻元素`);
-
-            // 只查找真正紧邻的元素
-            for (const candidate of allElements) {
-                if (processed.has(candidate.id) || candidate.id === startElement.id) continue;
-
-                // 检查是否与当前组中的任何元素紧邻
-                const isNeighbor = group.some(groupMember => {
-                    return areImmediateNeighbors(groupMember, candidate);
-                });
-
-                if (isNeighbor) {
-                    group.push(candidate);
-                    console.log(`  ✅ 添加紧邻元素: ${candidate.name}`);
-                }
-            }
-
-            return group;
-        }
-
-        // 🎯 检查两个元素是否紧邻（超严格标准）
-        function areImmediateNeighbors(elem1, elem2) {
-            // 1. Y坐标必须非常接近（同一行）
-            const yDiff = Math.abs(elem1.y - elem2.y);
-            const maxHeight = Math.max(elem1.height, elem2.height);
-
-            if (yDiff > maxHeight * 0.1) { // Y坐标差距不能超过最大高度的10%
-                return false;
-            }
-
-            // 2. X坐标必须紧邻（间隙很小）
-            const distance = calculateMinDistance(elem1, elem2);
-            const minWidth = Math.min(elem1.width, elem2.width);
-
-            // 间隙不能超过最小宽度的20%
-            if (distance > minWidth * 0.2) {
-                console.log(`    📏 "${elem1.name}" 与 "${elem2.name}" 距离过远: ${distance} > ${minWidth * 0.2}`);
-                return false;
-            }
-
-            console.log(`    ✅ "${elem1.name}" 与 "${elem2.name}" 是紧邻元素`);
-            return true;
-        }
-
-        // 🎯 识别行（基于Y坐标和重叠）
-        function identifyRowsWithGaps(elements) {
-            const sortedByY = [...elements].sort((a, b) => a.y - b.y);
-            const rows = [];
-            let currentRow = [];
-
-            for (const element of sortedByY) {
-                if (currentRow.length === 0) {
-                    currentRow.push(element);
-                } else {
-                    // 检查是否与当前行有Y轴重叠或接近（更严格）
-                    const canJoinRow = currentRow.some(rowElement => {
-                        const yOverlap = !(element.y >= rowElement.y + rowElement.height ||
-                                         element.y + element.height <= rowElement.y);
-                        const avgHeight = (element.height + rowElement.height) / 2;
-                        const yClose = Math.abs(element.y - rowElement.y) <= avgHeight * 0.2; // 平均高度的20%容差
-                        return yOverlap || yClose;
-                    });
-
-                    if (canJoinRow) {
-                        currentRow.push(element);
-                    } else {
-                        rows.push([...currentRow]);
-                        currentRow = [element];
-                    }
-                }
-            }
-
-            if (currentRow.length > 0) {
-                rows.push(currentRow);
-            }
-
-            return rows;
-        }
-
-        // 🎯 在行内按间隙分组
-        function groupRowByGaps(rowElements) {
-            const sortedByX = [...rowElements].sort((a, b) => a.x - b.x);
-            const groups = [];
-            let currentGroup = [];
-
-            console.log(`  🔍 分析行内间隙: [${sortedByX.map(e => e.name).join(', ')}]`);
-
-            for (let i = 0; i < sortedByX.length; i++) {
-                const element = sortedByX[i];
-
-                if (currentGroup.length === 0) {
-                    currentGroup.push(element);
-                } else {
-                    const lastElement = currentGroup[currentGroup.length - 1];
-                    const gap = element.x - (lastElement.x + lastElement.width);
-
-                    // 计算严格的间隙阈值
-                    const minWidth = Math.min(lastElement.width, element.width);
-                    const gapThreshold = minWidth * 0.3; // 间隙超过最小宽度的30%就分组
-
-                    console.log(`    📏 "${lastElement.name}" 到 "${element.name}" 间隙: ${gap}, 阈值: ${gapThreshold}`);
-
-                    if (gap <= gapThreshold) {
-                        currentGroup.push(element);
-                        console.log(`    ➡️ 继续当前组`);
-                    } else {
-                        groups.push([...currentGroup]);
-                        console.log(`    📦 完成分组: [${currentGroup.map(e => e.name).join(', ')}]`);
-                        currentGroup = [element];
-                        console.log(`    🆕 开始新组`);
-                    }
-                }
-            }
-
-            if (currentGroup.length > 0) {
-                groups.push(currentGroup);
-                console.log(`    📦 最后分组: [${currentGroup.map(e => e.name).join(', ')}]`);
-            }
-
-            return groups;
-        }
-
-
-
-
-
-
-
-
-
-
-
-        // 🎯 检查两个元素的连接是否被截断
-        function isConnectionTruncated(elem1, elem2, allElements, currentGroup) {
-            // 计算连接区域
-            const connectionBounds = {
-                left: Math.min(elem1.x, elem2.x),
-                right: Math.max(elem1.x + elem1.width, elem2.x + elem2.width),
-                top: Math.min(elem1.y, elem2.y),
-                bottom: Math.max(elem1.y + elem1.height, elem2.y + elem2.height)
-            };
-
-            // 检查是否有其他元素截断这个连接
-            for (const other of allElements) {
-                if (other.id === elem1.id || other.id === elem2.id || currentGroup.has(other.id)) {
-                    continue;
-                }
-
-                // 检查其他元素是否在连接路径上
-                if (isElementBlockingConnection(other, elem1, elem2, connectionBounds)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        // 🎯 检查元素是否阻挡连接
-        function isElementBlockingConnection(blockingElement, elem1, elem2, connectionBounds) {
-            const blocker = {
-                left: blockingElement.x,
-                right: blockingElement.x + blockingElement.width,
-                top: blockingElement.y,
-                bottom: blockingElement.y + blockingElement.height
-            };
-
-            // 检查是否与连接区域重叠
-            const overlaps = !(
-                blocker.right <= connectionBounds.left ||
-                blocker.left >= connectionBounds.right ||
-                blocker.bottom <= connectionBounds.top ||
-                blocker.top >= connectionBounds.bottom
-            );
-
-            if (!overlaps) return false;
-
-            // 检查是否真的在连接路径上（简化版本）
-            const isInPath = (
-                (blocker.left < connectionBounds.right && blocker.right > connectionBounds.left) &&
-                (blocker.top < connectionBounds.bottom && blocker.bottom > connectionBounds.top)
-            );
-
-            return isInPath;
-        }
-
-        // 🎯 创建分组操作描述
-        function createGroupingOperation(candidate, index) {
-            const bounds = calculateBounds(candidate.children);
-            const direction = determineGroupDirection(candidate.children);
-            const parentName = generateGroupName(candidate.children, candidate.type, index);
-
-            return {
-                id: `group_${index}`,
-                parentName: parentName,
-                children: candidate.children,
-                reason: candidate.reason,
-                direction: direction,
-                bounds: bounds,
-                type: candidate.type
-            };
-        }
-
-        // 🎯 生成分组名称
-        function generateGroupName(children, type, index) {
-            if (children.length === 1) {
-                return children[0].name;
-            }
-
-            // 根据子元素生成有意义的名称
-            if (children.length <= 3) {
-                return children.map(c => c.name).join(' + ');
-            } else {
-                return `${children[0].name} + ${children[1].name} + ${children.length - 2} 项`;
-            }
-        }
-
-        // 🎯 确定分组方向
-        function determineGroupDirection(elements) {
-            if (elements.length <= 1) return 'NONE';
-
-            // 计算元素分布
-            const xPositions = elements.map(e => e.x);
-            const yPositions = elements.map(e => e.y);
-            const xRange = Math.max(...xPositions) - Math.min(...xPositions);
-            const yRange = Math.max(...yPositions) - Math.min(...yPositions);
-
-            // 计算平均尺寸
-            const avgWidth = elements.reduce((sum, e) => sum + e.width, 0) / elements.length;
-            const avgHeight = elements.reduce((sum, e) => sum + e.height, 0) / elements.length;
-
-            if (xRange > avgWidth && xRange > yRange) {
-                return 'HORIZONTAL';
-            } else if (yRange > avgHeight && yRange > xRange) {
-                return 'VERTICAL';
-            } else {
-                return 'MIXED';
-            }
-        }
-
-        // 🎯 执行分组操作
-        function executeGroupingOperations(operations, originalElements) {
-            console.log(`\n🔧 执行分组操作:`);
-
-            const groups = [];
-
-            operations.forEach((operation, index) => {
-                console.log(`\n执行操作 ${index + 1}: 创建分组 "${operation.parentName}"`);
-                console.log(`   包含元素: ${operation.children.map(c => c.name).join(', ')}`);
-                console.log(`   布局方向: ${operation.direction}`);
-
-                groups.push(operation.children);
-            });
-
-            return groups;
-        }
-
-
-
-        // 🎯 在连续区域内进行分组
-        function groupElementsInRegion(regionElements, threshold) {
-            if (regionElements.length === 1) {
-                return [regionElements];
-            }
-
-            console.log(`🔄 在区域内分组 ${regionElements.length} 个元素`);
-
-            // 分析区域内元素的布局特征
-            const layoutAnalysis = analyzeRegionLayout(regionElements);
-            console.log(`📊 布局分析:`, layoutAnalysis);
-
-            // 根据布局特征选择分组策略
-            if (layoutAnalysis.isPrimaryHorizontal) {
-                console.log(`➡️ 主要是横向布局，使用横向分组`);
-                return groupRegionHorizontally(regionElements, threshold);
-            } else if (layoutAnalysis.isPrimaryVertical) {
-                console.log(`⬇️ 主要是纵向布局，使用纵向分组`);
-                return groupRegionVertically(regionElements, threshold);
-            } else {
-                console.log(`🔄 混合布局，使用混合分组策略`);
-                return groupRegionMixed(regionElements, threshold);
-            }
-        }
-
-        // 🎯 分析区域内的布局特征
-        function analyzeRegionLayout(elements) {
-            if (elements.length <= 1) {
-                return { isPrimaryHorizontal: false, isPrimaryVertical: false, isMixed: false };
-            }
-
-            // 计算元素的分布范围
-            const xPositions = elements.map(e => e.x);
-            const yPositions = elements.map(e => e.y);
-            const widths = elements.map(e => e.width);
-            const heights = elements.map(e => e.height);
-
-            const xRange = Math.max(...xPositions) - Math.min(...xPositions);
-            const yRange = Math.max(...yPositions) - Math.min(...yPositions);
-            const avgWidth = widths.reduce((sum, w) => sum + w, 0) / widths.length;
-            const avgHeight = heights.reduce((sum, h) => sum + h, 0) / heights.length;
-
-            // 判断主要布局方向
-            const isPrimaryHorizontal = xRange > avgWidth && xRange > yRange;
-            const isPrimaryVertical = yRange > avgHeight && yRange > xRange;
-            const isMixed = !isPrimaryHorizontal && !isPrimaryVertical;
-
-            return {
-                isPrimaryHorizontal,
-                isPrimaryVertical,
-                isMixed,
-                xRange,
-                yRange,
-                avgWidth,
-                avgHeight
-            };
-        }
-
-        // 🎯 横向分组策略
-        function groupRegionHorizontally(elements, threshold) {
-            // 先按行分组
-            const rows = identifyRowsByAlignment(elements, threshold);
-            const groups = [];
-
-            rows.forEach(row => {
-                if (row.length === 1) {
-                    groups.push(row);
-                } else {
-                    // 行内按X坐标和间距分组
-                    const rowGroups = groupBySpacing(row, threshold, 'horizontal');
-                    groups.push(...rowGroups);
-                }
-            });
-
-            return groups;
-        }
-
-        // 🎯 纵向分组策略
-        function groupRegionVertically(elements, threshold) {
-            // 先按列分组
-            const columns = identifyColumnsByAlignment(elements, threshold);
-            const groups = [];
-
-            columns.forEach(column => {
-                if (column.length === 1) {
-                    groups.push(column);
-                } else {
-                    // 列内按Y坐标和间距分组
-                    const columnGroups = groupBySpacing(column, threshold, 'vertical');
-                    groups.push(...columnGroups);
-                }
-            });
-
-            return groups;
-        }
-
-        // 🎯 混合分组策略（处理复杂布局）
-        function groupRegionMixed(elements, threshold) {
-            // 对于混合布局，尝试找到最佳的分组组合
-            // 这里实现简化版本，可以根据需要扩展
-
-            // 尝试横向分组
-            const horizontalGroups = groupRegionHorizontally(elements, threshold);
-
-            // 尝试纵向分组
-            const verticalGroups = groupRegionVertically(elements, threshold);
-
-            // 选择产生更合理分组的策略
-            // 简单策略：选择产生较少单元素组的方案
-            const horizontalSingleCount = horizontalGroups.filter(g => g.length === 1).length;
-            const verticalSingleCount = verticalGroups.filter(g => g.length === 1).length;
-
-            if (horizontalSingleCount <= verticalSingleCount) {
-                console.log(`🎯 混合布局选择横向分组`);
-                return horizontalGroups;
-            } else {
-                console.log(`🎯 混合布局选择纵向分组`);
-                return verticalGroups;
-            }
-        }
-
-
-
-        // 🎯 按对齐识别行
-        function identifyRowsByAlignment(elements, threshold) {
-            const sortedByY = [...elements].sort((a, b) => a.y - b.y);
-            const rows = [];
-            let currentRow = [];
-
-            for (const element of sortedByY) {
-                if (currentRow.length === 0) {
-                    currentRow.push(element);
-                } else {
-                    // 检查是否与当前行对齐
-                    const isAligned = currentRow.some(rowElement => {
-                        const yOverlap = !(element.y + element.height <= rowElement.y ||
-                                         element.y >= rowElement.y + rowElement.height);
-                        const yClose = Math.abs(element.y - rowElement.y) <= threshold;
-                        return yOverlap || yClose;
-                    });
-
-                    if (isAligned) {
-                        currentRow.push(element);
-                    } else {
-                        rows.push([...currentRow]);
-                        currentRow = [element];
-                    }
-                }
-            }
-
-            if (currentRow.length > 0) {
-                rows.push(currentRow);
-            }
-
-            return rows;
-        }
-
-        // 🎯 按对齐识别列
-        function identifyColumnsByAlignment(elements, threshold) {
-            const sortedByX = [...elements].sort((a, b) => a.x - b.x);
-            const columns = [];
-            let currentColumn = [];
-
-            for (const element of sortedByX) {
-                if (currentColumn.length === 0) {
-                    currentColumn.push(element);
-                } else {
-                    // 检查是否与当前列对齐
-                    const isAligned = currentColumn.some(colElement => {
-                        const xOverlap = !(element.x + element.width <= colElement.x ||
-                                         element.x >= colElement.x + colElement.width);
-                        const xClose = Math.abs(element.x - colElement.x) <= threshold;
-                        return xOverlap || xClose;
-                    });
-
-                    if (isAligned) {
-                        currentColumn.push(element);
-                    } else {
-                        columns.push([...currentColumn]);
-                        currentColumn = [element];
-                    }
-                }
-            }
-
-            if (currentColumn.length > 0) {
-                columns.push(currentColumn);
-            }
-
-            return columns;
-        }
-
-        // 🎯 按间距分组
-        function groupBySpacing(elements, threshold, direction) {
-            const sortKey = direction === 'horizontal' ? 'x' : 'y';
-            const sizeKey = direction === 'horizontal' ? 'width' : 'height';
-
-            const sorted = [...elements].sort((a, b) => a[sortKey] - b[sortKey]);
-            const groups = [];
-            let currentGroup = [];
-
-            for (const element of sorted) {
-                if (currentGroup.length === 0) {
-                    currentGroup.push(element);
-                } else {
-                    const lastElement = currentGroup[currentGroup.length - 1];
-                    const gap = element[sortKey] - (lastElement[sortKey] + lastElement[sizeKey]);
-
-                    if (gap <= threshold) {
-                        currentGroup.push(element);
-                    } else {
-                        groups.push([...currentGroup]);
-                        currentGroup = [element];
-                    }
-                }
-            }
-
-            if (currentGroup.length > 0) {
-                groups.push(currentGroup);
-            }
-
-            return groups;
-        }
-
-        // 🎯 计算两个元素之间的最小距离
-        function calculateMinDistance(elem1, elem2) {
-            const rect1 = {
-                left: elem1.x,
-                right: elem1.x + elem1.width,
-                top: elem1.y,
-                bottom: elem1.y + elem1.height
-            };
-
-            const rect2 = {
-                left: elem2.x,
-                right: elem2.x + elem2.width,
-                top: elem2.y,
-                bottom: elem2.y + elem2.height
-            };
-
-            // 计算矩形间的最小距离
-            const xDistance = Math.max(0, Math.max(rect1.left - rect2.right, rect2.left - rect1.right));
-            const yDistance = Math.max(0, Math.max(rect1.top - rect2.bottom, rect2.top - rect1.bottom));
-
-            return Math.sqrt(xDistance * xDistance + yDistance * yDistance);
-        }
-
-
-
-
-
-        // 按位置分组（行列分组）
-        function groupByPosition(elements, threshold) {
-            // 先按行分组
-            const rows = groupByRows(elements, threshold);
-
-            // 再在每行内按列分组
-            const groups = [];
-            rows.forEach(row => {
-                const cols = groupByColumns(row, threshold);
-                groups.push(...cols);
-            });
-
-            return groups.filter(group => group.length > 0);
-        }
-
-        // 按行分组
-        function groupByRows(elements, threshold) {
-            const sortedByY = [...elements].sort((a, b) => a.y - b.y);
-            const rows = [];
-            let currentRow = [sortedByY[0]];
-
-            for (let i = 1; i < sortedByY.length; i++) {
-                const current = sortedByY[i];
-                const previous = sortedByY[i - 1];
-
-                const yGap = current.y - (previous.y + previous.height);
-
-                if (yGap > threshold) {
-                    rows.push(currentRow);
-                    currentRow = [current];
-                } else {
-                    currentRow.push(current);
-                }
-            }
-
-            if (currentRow.length > 0) {
-                rows.push(currentRow);
-            }
-
-            return rows;
-        }
-
-        // 按列分组
-        function groupByColumns(elements, threshold) {
-            const sortedByX = [...elements].sort((a, b) => a.x - b.x);
-            const columns = [];
-            let currentColumn = [sortedByX[0]];
-
-            for (let i = 1; i < sortedByX.length; i++) {
-                const current = sortedByX[i];
-                const previous = sortedByX[i - 1];
-
-                const xGap = current.x - (previous.x + previous.width);
-
-                if (xGap > threshold) {
-                    columns.push(currentColumn);
-                    currentColumn = [current];
-                } else {
-                    currentColumn.push(current);
-                }
-            }
-
-            if (currentColumn.length > 0) {
-                columns.push(currentColumn);
-            }
-
-            return columns;
-        }
-
-        // 计算两个元素之间的距离
-        function calculateDistance(elem1, elem2) {
-            const center1 = {
-                x: elem1.x + elem1.width / 2,
-                y: elem1.y + elem1.height / 2
-            };
-            const center2 = {
-                x: elem2.x + elem2.width / 2,
-                y: elem2.y + elem2.height / 2
-            };
-
-            return Math.sqrt(
-                Math.pow(center1.x - center2.x, 2) +
-                Math.pow(center1.y - center2.y, 2)
-            );
-        }
-
-        // 计算边界
-        function calculateBounds(elements) {
-            if (elements.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
-
-            const minX = Math.min(...elements.map(e => e.x));
-            const minY = Math.min(...elements.map(e => e.y));
-            const maxX = Math.max(...elements.map(e => e.x + e.width));
-            const maxY = Math.max(...elements.map(e => e.y + e.height));
-
-            return {
-                x: minX - 5,
-                y: minY - 5,
-                width: maxX - minX + 10,
-                height: maxY - minY + 10
-            };
-        }
-
-        // 🎯 确定分组类型和布局方向（Flex布局导向）
-        function determineGroupType(elements, hierarchy) {
-            if (elements.length <= 1) {
-                return { type: hierarchy.name, direction: 'NONE' };
-            }
-
-            // 计算布局方向
-            const direction = determineFlexDirection(elements);
-
-            // 根据元素类型和位置特征确定最适合的分组类型
-            const hasImages = elements.some(e => e.type === 'image');
-            const hasButtons = elements.some(e => e.type === 'button');
-            const hasText = elements.some(e => e.type === 'text');
-
-            let groupType = hierarchy.name;
-
-            // 简化的类型判断逻辑
-            if (hasButtons && hasText) groupType = 'nav';
-            else if (hasImages && hasText) groupType = 'article';
-            else if (elements.length > 3) groupType = 'section';
-
-            return { type: groupType, direction };
-        }
-
-        // 🎯 确定Flex布局方向
-        function determineFlexDirection(elements) {
-            if (elements.length <= 1) return 'NONE';
-
-            // 计算元素的位置分布
-            const positions = elements.map(e => ({ x: e.x, y: e.y, width: e.width, height: e.height }));
-
-            // 计算X和Y方向的变化程度
-            const xPositions = positions.map(p => p.x);
-            const yPositions = positions.map(p => p.y);
-
-            const xRange = Math.max(...xPositions) - Math.min(...xPositions);
-            const yRange = Math.max(...yPositions) - Math.min(...yPositions);
-
-            // 计算平均元素尺寸
-            const avgWidth = positions.reduce((sum, p) => sum + p.width, 0) / positions.length;
-            const avgHeight = positions.reduce((sum, p) => sum + p.height, 0) / positions.length;
-
-            // 判断主要布局方向
-            // 如果X方向的分布远大于Y方向，且X范围大于平均宽度，则为横向
-            if (xRange > yRange && xRange > avgWidth) {
-                console.log(`📐 检测到横向布局: X范围=${xRange}, Y范围=${yRange}`);
-                return 'HORIZONTAL';
-            }
-            // 如果Y方向的分布远大于X方向，且Y范围大于平均高度，则为纵向
-            else if (yRange > xRange && yRange > avgHeight) {
-                console.log(`📐 检测到纵向布局: X范围=${xRange}, Y范围=${yRange}`);
-                return 'VERTICAL';
-            }
-            // 默认横向（优先横向的策略）
-            else {
-                console.log(`📐 默认横向布局: X范围=${xRange}, Y范围=${yRange}`);
-                return 'HORIZONTAL';
-            }
-        }
 
         // 渲染函数
         function renderCanvas(elements, canvasId) {
@@ -3570,6 +1338,12 @@
         // 初始化
         function init() {
             console.log('🚀 开始初始化...');
+
+            // 🎨 转换Figma数据
+            console.log('🎨 转换Figma数据...');
+            testCases.figma_cs_enterprise = convertFigmaToElements(figmaRawData);
+            console.log('✅ Figma数据转换完成，元素数量:', testCases.figma_cs_enterprise.length);
+
             console.log('当前测试用例:', currentCase);
             console.log('测试数据:', testCases[currentCase]);
 
@@ -3789,7 +1563,7 @@
             // 清空之前的错误信息
             globalErrorMessages = [];
 
-            const cases = ['simple_card', 'basic_layout', 'form_example', 'navigation_bar', 'dashboard_simple'];
+            const cases = ['simple_card', 'basic_layout', 'form_example', 'navigation_bar', 'dashboard_simple', 'figma_cs_enterprise'];
             let passedCount = 0;
 
             cases.forEach(caseId => {
@@ -3881,6 +1655,12 @@
                     ['订单数', '456', '+15%'],
                     ['最近活动', '新用户注册', '订单完成', '支付成功'],
                     ['销售趋势', '图表内容']
+                ],
+                'figma_cs_enterprise': [
+                    ['cs_ic_common_invite_user_邀请成员', '邀请成员'],
+                    ['cs_ic_common_import_doc_导入文档', '批导入成员'],
+                    ['cs_ic_common_extract-提取页面', '导出成员列表'],
+                    ['cs_ic_common_subscribe_订阅', '批量提醒']
                 ]
             };
 
@@ -4112,7 +1892,7 @@
 
         // 🎯 分析测试结果
         function analyzeTestResults() {
-            const cases = ['simple_card', 'basic_layout', 'form_example', 'navigation_bar', 'dashboard_simple'];
+            const cases = ['simple_card', 'basic_layout', 'form_example', 'navigation_bar', 'dashboard_simple', 'figma_cs_enterprise'];
             const failedCases = [];
             let passedCount = 0;
 
